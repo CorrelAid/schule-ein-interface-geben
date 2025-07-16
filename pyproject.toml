@@ -1,0 +1,11 @@
+[project]
+name = "schule-ein-interface-geben"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "dlt[duckdb]>=1.13.0",
+    "pydantic>=2.11.7",
+    "streamlit>=1.46.1",
+]
