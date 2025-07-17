@@ -7,11 +7,14 @@ All sources have a pydantic model in `/models`
 - html will have to be processed into structured data, e.g. "further links"
 - Very different media (prezi, video, quizzes)
 - contains links to other ressources (again, documents...)
+- Has "Downloads" and "This might interest you" section
+
 #### Types of media
-    - how to use quizes?
-    - idea for prezi: use transcript
-    - where to get video transcripts?
-    - 
+
+- how to use quizes?
+- idea for prezi: use transcript
+- where to get video transcripts?
+- infographc can also mean "quiz" or "presentation" or multiple types of media -> tool type is not reliable
 
 ### Archive
 #TODO might merge this with books, as it does contains (published) books as well, e.g. "Demokratiepädagogik - Demokratielernen - Eine Aufgabe der Schule" in 4.5.
@@ -19,7 +22,6 @@ All sources have a pydantic model in `/models`
 
 
 ### Glossar
-#TODO add issue 
 - Scraped automatically from https://meinsvwissen.de/glossar/
 - Contains subfields with annotations for jurisdictions if existent, e.g. in the case of "Klassenrat"
 
