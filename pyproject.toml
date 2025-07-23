@@ -13,6 +13,15 @@ dependencies = [
     "lib",
     "dspy>=2.6.27",
     "python-dotenv>=1.1.1",
+    "polars>=1.31.0",
+    "jupyter>=1.1.1",
+    "matplotlib>=3.10.3",
+    "seaborn>=0.13.2",
+    "markdown>=3.8.2",
+    "markdownify>=1.1.0",
+    "selenium>=4.34.2",
+    "anytree>=2.13.0",
+    "rich>=14.0.0",
 ]
 
 [tool.uv.sources]

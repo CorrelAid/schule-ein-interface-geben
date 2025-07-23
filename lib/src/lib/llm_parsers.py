@@ -1,5 +1,5 @@
 from typing import get_type_hints
-from lib.models import Term, Jurisdiction_Extra
+from lib.models import Term
 import dspy
 
 type_hints = get_type_hints(Term)
