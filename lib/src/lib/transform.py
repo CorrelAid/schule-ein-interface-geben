@@ -5,8 +5,6 @@ import polars.selectors as cs
 def transform_api_results(pipeline_name, db_name):
     with duckdb.connect(f"{pipeline_name}.duckdb", read_only=False) as db:
         df_posts = db.sql(f"SELECT * FROM {db_name}.posts").pl().rename({"title__rendered": "title", "content__rendered": "content" })
-        print(len(df_posts))
-
         df_stufe = db.sql(f"SELECT * FROM {db_name}.stufe").pl()
         df_posts_stufe = db.sql(f"SELECT * FROM {db_name}.posts__stufe").pl()
 

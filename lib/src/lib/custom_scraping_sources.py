@@ -10,8 +10,6 @@ from bs4 import BeautifulSoup
 import time
 import polars as pl
 import random
-import mimetypes
-import markdown
 from lib.config import pipeline_name, db_name, tree_json_path, download_subpage
 
 
@@ -86,7 +84,7 @@ def get_download_soup(wp_user, wp_pw, max_retries=3):
     options = webdriver.ChromeOptions()
     options.add_argument('--headless')
     driver = webdriver.Chrome(options=options)
-    driver.implicitly_wait(5)  # Set implicit wait once
+    driver.implicitly_wait(6)  
 
     retry_count = 0
     try:
@@ -118,7 +116,7 @@ def get_download_soup(wp_user, wp_pw, max_retries=3):
                 if retry_count < max_retries:
                     print(f"Retrying... (Attempt {retry_count + 1}/{max_retries})")
                     # eponential backoff with jitter
-                    time.sleep(2 ** retry_count + random.uniform(0, 1))
+                    time.sleep(2 ** retry_count + random.uniform(2, 4))
                 else:
                     raise Exception(f"Max retries ({max_retries}) reached in get_download_soup.")
     finally:
@@ -137,7 +135,7 @@ def process_id(id, index, total, max_retries=3):
     try:
         while retry_count < max_retries and not success:
             try:
-                jitter = random.uniform(0.5, 2.0)
+                jitter = random.uniform(2, 5.0)
                 driver.get(f"https://meinsvwissen.de/sv-archiv/#36-{id}")
                 time.sleep(4 + jitter)
 
@@ -150,7 +148,7 @@ def process_id(id, index, total, max_retries=3):
                 retry_count += 1
                 if retry_count < max_retries:
                     print(f"Retrying... (Attempt {retry_count + 1}/{max_retries})")
-                    time.sleep(2 ** retry_count + random.uniform(0, 1))  
+                    time.sleep(2 ** retry_count + random.uniform(2, 4))  
                 else:
                     raise Exception(f"Max retries ({max_retries}) reached for ID {id}.")
 
@@ -187,7 +185,7 @@ def get_file_links(category_ids, max_workers=4):
                     file_items = future.result()
                     lst.extend(file_items)
                 except Exception as e:
-                    progress.print(f"[red]Error processing ID {id}: {e}[/red]")
+                    raise e
                 progress.update(task, advance=1)
 
     return list(set(lst))

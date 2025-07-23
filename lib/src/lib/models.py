@@ -45,6 +45,7 @@ class Section(BaseModel):
     ]  # might be the result of transcription or extracting text from somewhere else
     type: Literal[
         "plain_text",
+        "accordion_section_text",
         "accordion_section_prezi",
         "accordion_section_youtube",
         "accordion_section_h5p",

@@ -46,7 +46,7 @@ logging.basicConfig(
 log = logging.getLogger("rich")
 
 SMOKE_TEST_N = 20
-MAX_WORKERS = 4
+MAX_WORKERS = 3
 
 def parse_arguments():
     parser = argparse.ArgumentParser(
@@ -160,7 +160,7 @@ df_posts_extended = extract_book_chapter(df_posts_extended)
 
 log.info("Extend posts with related posts")
 
-df_posts_extended = extract_related_posts(df_posts_extended)
+df_posts_extended = extract_related_posts(df_posts_extended, max_workers=MAX_WORKERS)
 
 log.info("Extend posts with dedicated download chapter id")
 
@@ -181,7 +181,7 @@ log.info("[bold blue]🏭 Pipeline Stage 3/4: Scrape Sections", extra={"markup":
 
 
 def process_row(row):
-    return process_posts_row(row)
+    return process_posts_row(row, logger=log)
 
 
 sections = []

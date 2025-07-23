@@ -117,11 +117,57 @@ def test_post_scraping_just_text():
     post_gt = [
         {
             "type": "plain_text",
-            "text": '<div class="elementor-element elementor-element-b591acb elementor-widget elementor-widget-text-editor" data-element_type="widget" data-id="b591acb" data-widget_type="text-editor.default"><div class="elementor-widget-container"><p><span style="-webkit-text-size-adjust: 100%;">Wir arbeiten derzeit hauptsächlich an staatlichen weiterführenden Schulen. Hier beginnt eine erste Sammlung von Materialien für Förderschulen, Schulen in freier Trägerschaft oder Berufs- und Fachschulen. <br/><a href="https://meinsvwissen.de/feedback/">Ladet gern euer Material hoch!</a></span></p><p><a href="https://meinsvwissen.de/grundschulen/">Hier geht es zum <strong>Bereich für Grundschulen</strong>.</a></p> </div></div>',
+            "text": "Wir arbeiten derzeit hauptsächlich an staatlichen weiterführenden Schulen. Hier beginnt eine erste Sammlung von Materialien für Förderschulen, Schulen in freier Trägerschaft oder Berufs- und Fachschulen.   [Ladet gern euer Material hoch!](https://meinsvwissen.de/feedback/)[Hier geht es zum **Bereich für Grundschulen**.](https://meinsvwissen.de/grundschulen/)",
             "post_id": 7022,
         }
     ]
 
+    result = get_result(post_id)
+    assert result == post_gt
+
+
+def test_quiz():
+    post_id = 6199  # https://meinsvwissen.de/quiz-1/
+    post_gt = [
+        {
+            "type": "quiz",
+            "text": "\nFür eine erfolgreiche SV-Arbeit ist es wichtig, dass eure Sitzungen auch Freude machen. So nehmen mehr Schüler:innen teil und sehen ihre Rolle als Klassensprecher:in nicht nur als Pflicht an. Mit dem Schieberegler könnt ihr einschätzen, wie schülerfreundlich eure SV-Sitzungen sind.\nWie sehr treffen die Aussagen auf eure SV zu? Ihr könnt die Aussagen mit Punkten bewerten.\n0 Punkte = Stimme gar nicht zu\n10 Punkte = Stimme absolut zu\nDabei gibt es kein richtig oder falsch - versucht so ehrlich wie möglich zu antworten.\n\n",
+            "post_id": 6199,
+        }
+    ]
+    result = get_result(post_id)
+    assert result == post_gt
+
+
+def test_multiple_media_outside_accordion():
+    post_id = 4863
+    post_gt = [
+        {
+            "type": "plain_text",
+            "text": "Ein SV-Kalender kann euch helfen euer Jahr zu strukturieren und dadurch immer zu wissen, was als nächstes ansteht und zu tun ist. Damit habt ihr nicht nur die gemeinsamen Ziele vor Augen, sondern es gibt auch gleich einen klaren Plan für Neueinsteiger\\_innen.",
+            "post_id": 4863,
+        },
+        {
+            "type": "image",
+            "external_link": "https://meinsvwissen.de/wp-content/uploads/2022/03/Jahresuebersicht-1-1.jpg",
+            "post_id": 4863,
+        },
+        {
+            "type": "h5p",
+            "title": "Ablauf eines SV-Jahres: Beispiel-Kalender",
+            "post_id": 4863,
+        },
+        {
+            "type": "image",
+            "external_link": "https://meinsvwissen.de/wp-content/uploads/2022/03/Insta-Post-SV-Kalender-1-1024x1024.jpg",
+            "post_id": 4863,
+        },
+        {
+            "type": "image",
+            "external_link": "https://meinsvwissen.de/wp-content/uploads/2022/03/Insta-Post-SV-Kalender-2-1024x1024.jpg",
+            "post_id": 4863,
+        },
+    ]
     result = get_result(post_id)
     print(result)
     assert result == post_gt

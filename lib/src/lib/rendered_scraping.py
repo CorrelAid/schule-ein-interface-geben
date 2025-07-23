@@ -1,6 +1,7 @@
 import polars as pl
 from bs4 import BeautifulSoup
 import markdown
+from markdownify import markdownify
 import requests
 import re
 import concurrent.futures
@@ -9,6 +10,7 @@ from lib.config import tree_json_path, download_subpage
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 import time
+import random
 
 category_pattern = r"#\d+-(\d+)"  # get second number after root category id
 
@@ -44,28 +46,28 @@ def extract_further_download_category_ids(df):
     )
     return df_
 
+def extract_book_chapter_row(row):
+    soup = BeautifulSoup(row["content"], "html.parser")
+    buttom_widgets = soup.find_all(class_="elementor-widget-button")
+    buttom_widgets = [
+        widget
+        for widget in buttom_widgets
+        if "volltext" in widget.get_text().lower()
+    ]
+    if len(buttom_widgets) == 0:
+        return None
+    elif len(buttom_widgets) > 1:
+        raise ValueError("More than one button widget found")
+    else:
+        buttom_widgets = buttom_widgets[0]
+        link = buttom_widgets.find("a")["href"]
+        return link
+
 
 def extract_book_chapter(df):
-    def func(row):
-        soup = BeautifulSoup(row["content"], "html.parser")
-        buttom_widgets = soup.find_all(class_="elementor-widget-button")
-        buttom_widgets = [
-            widget
-            for widget in buttom_widgets
-            if "volltext" in widget.get_text().lower()
-        ]
-        if len(buttom_widgets) == 0:
-            return None
-        elif len(buttom_widgets) > 1:
-            raise ValueError("More than one button widget found")
-        else:
-            buttom_widgets = buttom_widgets[0]
-            link = buttom_widgets.find("a")["href"]
-            return link
-
     df_ = df.with_columns(
         pl.struct("content", "title")
-        .map_elements(lambda row: func(row), return_dtype=pl.Utf8)
+        .map_elements(lambda row: extract_book_chapter_row(row), return_dtype=pl.Utf8)
         .alias("book_chapter")
     )
     return df_
@@ -94,7 +96,7 @@ def process_post_link(href):
     return None
 
 
-def extract_related_posts_row(row):
+def extract_related_posts_row(row, max_workers):
     lst = []
     to_check = []
     soup = BeautifulSoup(row["content"], "html.parser")
@@ -124,7 +126,7 @@ def extract_related_posts_row(row):
             ):
                 to_check.append(href)
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = [executor.submit(process_post_link, href) for href in to_check]
 
         for future in concurrent.futures.as_completed(futures):
@@ -196,7 +198,7 @@ def get_prezi_transcript_with_retry(url, logger, max_retries=3):
             if attempt == max_retries - 1:
                 logger.debug(f"Failed to fetch {url} after {max_retries} attempts")
                 raise e
-            time.sleep(1 * (attempt + 1))
+            time.sleep(1 * (attempt + 2))
 
 
 prezi_pattern = r"https://prezi.com/p/embed\/(.+?)(?:\/|$)"
@@ -216,7 +218,7 @@ def get_prezi_transcript(url, logger):
     driver = None
     driver = webdriver.Chrome(options=options)
     driver.get(prezi_url)
-    driver.implicitly_wait(3)
+    driver.implicitly_wait(4)
 
     if "Page not found" in driver.title:
         logger.warning(f"Page not found for URL: {url}")
@@ -224,7 +226,7 @@ def get_prezi_transcript(url, logger):
 
     transcript_div = driver.find_element(by=By.ID, value="transcript-full-text")
     soup = BeautifulSoup(transcript_div.get_attribute("innerHTML"), "html.parser")
-    text = markdown.markdown(str(soup)).replace("\n", "")
+    text = str(soup)
     driver.quit()
     return text
 
@@ -232,7 +234,7 @@ def get_prezi_transcript(url, logger):
 def process_widget(widget, post_title, post_id, logger):
     sections = []
     if "elementor-widget-text-editor" in widget["class"]:
-        text = markdown.markdown(str(widget)).replace("\n", "")
+        text = markdownify(str(widget)).replace("\n", "")
         logger.debug("Appending section type: plain_text")
         sections.append(
             {
@@ -256,7 +258,7 @@ def process_widget(widget, post_title, post_id, logger):
                 for text_editor in toggle_content.find_all(
                     "elementor-widget-text-editor"
                 ):
-                    text = markdown.markdown(str(text_editor)).replace("\n", "")
+                    text = markdownify(str(text_editor)).replace("\n", "")
                     logger.debug(
                         f"Appending section type: accordion_section_text for post '{post_title}' ({post_id}) and accordion section '{title}'"
                     )
@@ -320,7 +322,6 @@ def process_widget(widget, post_title, post_id, logger):
                             )
                     elif iframe.has_attr("class"):
                         if "h5p-iframe" in iframe["class"]:
-                            external_link = iframe["src"]
                             logger.debug(
                                 f"Appending section type: accordion_section_h5p for post '{post_title}' ({post_id}) and accordion section '{title}'"
                             )
@@ -328,7 +329,6 @@ def process_widget(widget, post_title, post_id, logger):
                                 {
                                     "title": iframe["title"],
                                     "type": "accordion_section_h5p",
-                                    "external_link": external_link,
                                     "post_id": post_id,
                                 }
                             )
@@ -386,7 +386,7 @@ def process_widget(widget, post_title, post_id, logger):
             for iframe in widget.find_all("iframe"):
                 if "prezi" in iframe["src"]:
                     external_link = iframe["src"]
-                    text = get_prezi_transcript_with_retry(external_link)
+                    text = get_prezi_transcript_with_retry(external_link, logger)
                     logger.debug(
                         f"Appending section type: prezi for post '{post_title}' ({post_id}) and external link '{external_link}'"
                     )
@@ -408,7 +408,6 @@ def process_widget(widget, post_title, post_id, logger):
                         sections.append(
                             {
                                 "type": "h5p",
-                                "external_link": iframe["src"],
                                 "title": iframe["title"],
                                 "post_id": post_id,
                             }
@@ -467,6 +466,8 @@ def process_widget(widget, post_title, post_id, logger):
 
 
 def extract_sections(row, logger):
+    jitter = random.uniform(0.5, 1.5)
+    time.sleep(jitter)
     soup = BeautifulSoup(row["content"], "html.parser")
     widgets = soup.find_all(class_="elementor-widget")
     widgets = [
