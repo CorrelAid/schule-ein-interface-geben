@@ -20,12 +20,11 @@ from lib.custom_scraping_sources import (
     extract_download_info,
 )
 from lib.transform import transform_api_results
-from lib.dlt_stuff import api_source
+from lib.dlt_defs import api_source
 from lib.config import valid_jurisdictions, tree_json_path
 from lib.llm_parsers import make_termparser
 from lib.config import llm_base_url, llm_model, db_name, pipeline_name
 from lib.models import Term, Post, Download, Section
-
 from lib.rendered_scraping import (
     process_posts_row,
     extract_further_download_category_ids,

@@ -38,6 +38,7 @@ class Download(BaseModel):
 
 
 class Section(BaseModel):
+    post_id: int
     title: Optional[str]
     text: Optional[
         str
