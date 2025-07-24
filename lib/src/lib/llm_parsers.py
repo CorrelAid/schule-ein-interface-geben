@@ -1,9 +1,6 @@
-from typing import get_type_hints
-from lib.models import Term
+from lib.models import TermSchema
+from typing import Union
 import dspy
-
-type_hints = get_type_hints(Term)
-
 
 gp_examples = [
     dspy.Example(
@@ -29,7 +26,7 @@ NRW:  BSV und LSV (Bezirksschüler- und Landesschülervertretung""",
 ]
 
 
-def make_termparser(type_hints=type_hints):
+def make_termparser():
     class TermParser(dspy.Signature):
         "Parses a glossary entry to seperate information by jurisdiction without changing the text apart from excluding parts that belong in other fields or field names."
 
@@ -40,12 +37,13 @@ def make_termparser(type_hints=type_hints):
         raw_text: str = dspy.InputField(
             desc="All available text for the glossary entry"
         )
-
-    for field in Term.model_fields:
+    
+    schema = TermSchema.to_polars_schema().to_python()
+    for field in schema.keys():
         TermParser = TermParser.append(
             name=field,
-            field=dspy.OutputField(description=Term.model_fields[field].description),
-            type_=type_hints[field],
+            field=dspy.OutputField(),
+            type_=Union[str,None]
         )
 
     teleprompter = dspy.LabeledFewShot()

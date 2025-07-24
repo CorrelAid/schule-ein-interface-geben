@@ -299,6 +299,34 @@ wheels = [
 ]
 
 [[package]]
+name = "boto3"
+version = "1.39.12"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "botocore" },
+    { name = "jmespath" },
+    { name = "s3transfer" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/a2/f6/9021213a36aefc43dc300c89882a52d348f3a7a344fefda145f1b741d0a5/boto3-1.39.12.tar.gz", hash = "sha256:1a715cb40ea9df6b666148b243b5b9adbfa5be50d28e2f660330c0581d94b639", size = 111834 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/78/b6/c717416e67b1bef84be9c05f2686d353544eda2af5b43af06996a43f6481/boto3-1.39.12-py3-none-any.whl", hash = "sha256:bbf7a8d374b513975c305883ae40e623cc261dbdc25ea86ae435647cae837a15", size = 139899 },
+]
+
+[[package]]
+name = "botocore"
+version = "1.39.12"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "jmespath" },
+    { name = "python-dateutil" },
+    { name = "urllib3" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/16/de/136cb340bc7edc2709e0b4f1b422a101f1756982d774384c5cfb0eb27987/botocore-1.39.12.tar.gz", hash = "sha256:d20b53a196af32ff153cbdbef3cb89e6a9065dc5e90ce23d009e03364601a266", size = 14219106 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c8/af/3b82594c5fa26464b548da35a6affe27a44993f65c4149ed8cf8a5df8387/botocore-1.39.12-py3-none-any.whl", hash = "sha256:60bfa0f1e0eb03997e22254e2e6a0e3f7e02b8f845253a4bb235d9240d195c72", size = 13876938 },
+]
+
+[[package]]
 name = "bs4"
 version = "0.0.2"
 source = { registry = "https://pypi.org/simple" }
@@ -1159,6 +1187,15 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/d8/b3/2bd02071c5a2430d0b70403a34411fc519c2f227da7b03da9ba6a956f931/jiter-0.10.0-cp314-cp314-win32.whl", hash = "sha256:ac509f7eccca54b2a29daeb516fb95b6f0bd0d0d8084efaf8ed5dfc7b9f0b357", size = 210127 },
     { url = "https://files.pythonhosted.org/packages/03/0c/5fe86614ea050c3ecd728ab4035534387cd41e7c1855ef6c031f1ca93e3f/jiter-0.10.0-cp314-cp314t-macosx_11_0_arm64.whl", hash = "sha256:5ed975b83a2b8639356151cef5c0d597c68376fc4922b45d0eb384ac058cfa00", size = 318527 },
     { url = "https://files.pythonhosted.org/packages/b3/4a/4175a563579e884192ba6e81725fc0448b042024419be8d83aa8a80a3f44/jiter-0.10.0-cp314-cp314t-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:3aa96f2abba33dc77f79b4cf791840230375f9534e5fac927ccceb58c5e604a5", size = 354213 },
+]
+
+[[package]]
+name = "jmespath"
+version = "1.0.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/00/2a/e867e8531cf3e36b41201936b7fa7ba7b5702dbef42922193f05c8976cd6/jmespath-1.0.1.tar.gz", hash = "sha256:90261b206d6defd58fdd5e85f478bf633a2901798906be2ad389150c5c60edbe", size = 25843 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/31/b4/b9b800c45527aadd64d5b442f9b932b00648617eb5d63d2c7a6587b7cafc/jmespath-1.0.1-py3-none-any.whl", hash = "sha256:02e2e4cc71b5bcab88332eebf907519190dd9e6e82107fa7f83b1003a6252980", size = 20256 },
 ]
 
 [[package]]
@@ -2225,6 +2262,19 @@ wheels = [
 ]
 
 [[package]]
+name = "poldantic"
+version = "0.2.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "polars" },
+    { name = "pydantic" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/db/d6/ecc0165e49254999f9fffa07c85a371378eb2366a8ebd3487fecce5bb18c/poldantic-0.2.0.tar.gz", hash = "sha256:7c28bef68937f096ddd51fbda860ef269b718217a8aa7aabc2a317710bbb1a79", size = 5682 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e0/6b/654a3bd3813ede32c88b73d41a3f9c3b75bfce34689e7319cde7c2663546/poldantic-0.2.0-py3-none-any.whl", hash = "sha256:31c15fab2b0fe341e590b7ecef2bc95dfee5cb1b9d1ecbc810af6780866aa875", size = 5127 },
+]
+
+[[package]]
 name = "prometheus-client"
 version = "0.22.1"
 source = { registry = "https://pypi.org/simple" }
@@ -2830,11 +2880,24 @@ wheels = [
 ]
 
 [[package]]
+name = "s3transfer"
+version = "0.13.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "botocore" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/6d/05/d52bf1e65044b4e5e27d4e63e8d1579dbdec54fce685908ae09bc3720030/s3transfer-0.13.1.tar.gz", hash = "sha256:c3fdba22ba1bd367922f27ec8032d6a1cf5f10c934fb5d68cf60fd5a23d936cf", size = 150589 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/6d/4f/d073e09df851cfa251ef7840007d04db3293a0482ce607d2b993926089be/s3transfer-0.13.1-py3-none-any.whl", hash = "sha256:a981aa7429be23fe6dfc13e80e4020057cbab622b08c0315288758d67cabc724", size = 85308 },
+]
+
+[[package]]
 name = "schule-ein-interface-geben"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "anytree" },
+    { name = "boto3" },
     { name = "bs4" },
     { name = "dlt", extra = ["duckdb"] },
     { name = "dspy" },
@@ -2844,6 +2907,7 @@ dependencies = [
     { name = "markdownify" },
     { name = "matplotlib" },
     { name = "polars" },
+    { name = "poldantic" },
     { name = "pydantic" },
     { name = "pytest" },
     { name = "python-dotenv" },
@@ -2857,6 +2921,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "anytree", specifier = ">=2.13.0" },
+    { name = "boto3", specifier = ">=1.39.12" },
     { name = "bs4", specifier = ">=0.0.2" },
     { name = "dlt", extras = ["duckdb"], specifier = ">=1.13.0" },
     { name = "dspy", specifier = ">=2.6.27" },
@@ -2866,6 +2931,7 @@ requires-dist = [
     { name = "markdownify", specifier = ">=1.1.0" },
     { name = "matplotlib", specifier = ">=3.10.3" },
     { name = "polars", specifier = ">=1.31.0" },
+    { name = "poldantic", specifier = ">=0.2.0" },
     { name = "pydantic", specifier = ">=2.11.7" },
     { name = "pytest", specifier = ">=8.4.1" },
     { name = "python-dotenv", specifier = ">=1.1.1" },

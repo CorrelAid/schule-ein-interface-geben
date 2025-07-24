@@ -1,3 +1,7 @@
+# SeGg Data Pipeline
+
+Bucket URL: https://cdl-segg.fra1.cdn.digitaloceanspaces.com
+
 ## Data Sources
 
 All sources have a pydantic model in `/models`

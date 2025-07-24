@@ -45,7 +45,7 @@ api_source = rest_api_source(
             "write_disposition": "replace",
         },
         "resources": [
-            "posts",  # Beiträge (contains full content as html, including )
+            {"name": "posts_pre", "endpoint": {"path": "posts"}},  # Beiträge (contains full content as html, including )
             "categories",  # Toolart, e.g. Download -> many posts to many categories
             "tags",  # Themen, e.g. Anträge -> many posts to many categories
             "stufe",  # Stufe e.g. "Für Profis" -> many posts to one

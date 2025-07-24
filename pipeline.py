@@ -4,27 +4,23 @@ import random
 import os
 import concurrent.futures
 import dspy
-import requests
+import boto3
 from dotenv import load_dotenv
-from bs4 import BeautifulSoup
 import polars as pl
-from rich.progress import Progress, TimeRemainingColumn, BarColumn, TextColumn
 from anytree import RenderTree
 from rich.logging import RichHandler
 import logging
-
 from lib.tree_functions import build_category_tree, get_node_lst, export_tree_to_json
 from lib.custom_scraping_sources import (
     get_download_soup,
     get_file_links,
     extract_download_info,
+    get_terms,
 )
 from lib.transform import transform_api_results
 from lib.dlt_defs import api_source
-from lib.config import valid_jurisdictions, tree_json_path
-from lib.llm_parsers import make_termparser
-from lib.config import llm_base_url, llm_model, db_name, pipeline_name
-from lib.models import Term, Post, Download, Section
+from lib.config import tree_json_path, llm_base_url, llm_model, db_name, pipeline_name
+from lib.models import DownloadSchema, PostSchema, TermSchema, SectionSchema
 from lib.rendered_scraping import (
     process_posts_row,
     extract_further_download_category_ids,
@@ -32,7 +28,7 @@ from lib.rendered_scraping import (
     extract_related_posts,
     extract_dedicated_download_chapter_id,
 )
-
+import pyarrow.parquet as pq
 
 load_dotenv()
 
@@ -45,8 +41,18 @@ logging.basicConfig(
 
 log = logging.getLogger("rich")
 
-SMOKE_TEST_N = 20
+SMOKE_TEST_N = 5
 MAX_WORKERS = 3
+S3_BUCKET_NAME = "cdl-segg"
+
+session = boto3.session.Session()
+client = session.client(
+    "s3",
+    endpoint_url=os.getenv("S3_ENDPOINT"),
+    aws_access_key_id=os.getenv("S3_ACCESS_KEY_ID"),
+    aws_secret_access_key=os.getenv("S3_SECRET_ACCESS_KEY"),
+)
+
 
 def parse_arguments():
     parser = argparse.ArgumentParser(
@@ -105,10 +111,6 @@ if args.smoke_test:
             f"{pre}{node.name} (ID: {node.data_id}, Level: {node.data_level}) {len(node.children) == 0}"
         )
 
-log.info("Saving tree as json")
-
-export_tree_to_json(root_node, tree_json_path)
-
 category_ids = get_node_lst(root_node)
 
 if args.smoke_test:
@@ -120,19 +122,14 @@ file_link_lst = get_file_links(category_ids, max_workers=MAX_WORKERS)
 log.info(
     "build a dataframe that contains available info on downloads, including dl url. We are also checking if the url works."
 )
-file_links = extract_download_info(file_link_lst, root_node, max_workers=MAX_WORKERS)
+downloads_df = extract_download_info(file_link_lst, root_node, max_workers=MAX_WORKERS)
+
+downloads_df = downloads_df.cast(DownloadSchema.to_polars_schema())
 
 log.info(
-    f"We extracted {len(file_links)} download urls from {len(category_ids)} categories"
+    f"We extracted {len(downloads_df)} download urls from {len(category_ids)} categories"
 )
 
-
-@dlt.resource(table_name="downloads", columns=Download)
-def downloads():
-    yield from file_links.iter_rows(named=True)
-
-
-load_info = pipeline.run(downloads, write_disposition="replace")
 
 ########################################
 ########################################
@@ -164,15 +161,9 @@ df_posts_extended = extract_related_posts(df_posts_extended, max_workers=MAX_WOR
 
 log.info("Extend posts with dedicated download chapter id")
 
-df_posts_extended = extract_dedicated_download_chapter_id(df_posts_extended)
+df_posts_extended = extract_dedicated_download_chapter_id(df_posts_extended, root_node)
 
-
-@dlt.resource(table_name="posts_processed", columns=Post)
-def posts_transformed():
-    yield from df_posts_extended.iter_rows(named=True)
-
-
-load_info = pipeline.run(posts_transformed, write_disposition="replace")
+df_posts_extended = df_posts_extended.cast(PostSchema.to_polars_schema())
 
 ########################################
 ########################################
@@ -196,15 +187,14 @@ with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
         temp = future.result()
         sections.extend(temp)
 
-section_df = pl.DataFrame(sections)
+section_df = pl.DataFrame(sections, schema_overrides=SectionSchema.to_polars_schema())
 
 
-@dlt.resource(table_name="sections", columns=Section)
-def sections():
-    yield from section_df.iter_rows(named=True)
-
-
-load_info = pipeline.run(sections, write_disposition="replace")
+# check that all sections have valid posts ids
+sec_ids = section_df["post_id"].unique().to_list()
+post_ids = df_posts_extended["id"].unique().to_list()
+missing = set(sec_ids) - set(post_ids)
+assert not missing, f"Orphan section post_ids: {missing}"
 
 ########################################
 ########################################
@@ -214,62 +204,59 @@ log.info(
     extra={"markup": True},
 )
 
-
-@dlt.resource(columns=Term)
-def get_terms(smoke_test):
-    term_parser = make_termparser()
-
-    glossary_url = "https://meinsvwissen.de/glossar/"
-
-    response = requests.get(glossary_url)
-    soup = BeautifulSoup(response.content, "html.parser")
-
-    elementors = soup.find_all(class_="elementor-toggle-item")
-    if smoke_test:
-        elementors = random.choices(elementors, k=SMOKE_TEST_N)
-    dspy.configure(lm=lm)
-
-    def parse_term(elem):
-        title = elem.find(class_="elementor-toggle-title").get_text(strip=False)
-        ps = elem.find_all("p")
-        ps_text = ""
-        for p in ps:
-            p_text = p.get_text(strip=False)
-            ps_text += f"{p_text}\n"
-            term_dct = term_parser(
-                valid_jurisdictions=valid_jurisdictions,
-                raw_text=ps_text,
-                term_input=title,
-            )
-        result = dict(term_dct)
-        return result
-
-    results = []
-    with Progress(
-        TextColumn("[progress.description]{task.description}"),
-        BarColumn(),
-        TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
-        TimeRemainingColumn(),
-    ) as progress:
-        task = progress.add_task("Parsing terms...", total=len(elementors))
-        with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
-            future_to_term = {
-                executor.submit(parse_term, elem): elem for elem in elementors
-            }
-            for future in concurrent.futures.as_completed(future_to_term):
-                progress.update(task, advance=1)
-                result = future.result()
-                results.append(result)
-    yield results
-
-
 # avoid info logging of litellm etc.
 logging.getLogger().setLevel(logging.WARN)
-load_info = pipeline.run(
-    get_terms(smoke_test=args.smoke_test),
-    write_disposition="replace",
-    table_name="glossary_terms",
-)
+
+term_df = get_terms(args.smoke_test, SMOKE_TEST_N, MAX_WORKERS * 6, lm)
+
+term_df = term_df.cast(TermSchema.to_polars_schema())
+
 logging.getLogger().setLevel(logging.INFO)
+
+########################################
+########################################
+
+log.info(
+    "[bold blue]⬆️ Post Pipeline: Uploading data",
+    extra={"markup": True},
+)
+
+table_names = ["posts", "sections", "glossary_terms", "downloads"]
+dfs = [df_posts_extended, section_df, term_df, downloads_df]
+schemas = [
+    PostSchema.to_pyarrow_schema(),
+    SectionSchema.to_pyarrow_schema(),
+    TermSchema.to_pyarrow_schema(),
+    DownloadSchema.to_pyarrow_schema(),
+]
+
+for idx, table_name in enumerate(table_names):
+    local_file_path = f"{table_name}.parquet"
+    table = dfs[idx].to_arrow().select(schemas[idx].names).cast(schemas[idx])
+    pq.write_table(table, local_file_path)
+
+    log.info(f"Uploading {table_name} to S3")
+    client.upload_file(
+        local_file_path,
+        S3_BUCKET_NAME,
+        local_file_path,
+        ExtraArgs={"ACL": "public-read"},
+    )
+    log.info(f"Uploaded {table_name} to S3")
+    os.remove(local_file_path)
+    log.info(f"Removed local file {local_file_path}")
+
+export_tree_to_json(root_node, tree_json_path)
+log.info(f"Uploading {tree_json_path} to S3")
+client.upload_file(
+    tree_json_path,
+    S3_BUCKET_NAME,
+    tree_json_path,
+    ExtraArgs={"ACL": "public-read"},
+)
+log.info(f"Uploaded {tree_json_path} to S3")
+os.remove(tree_json_path)
+log.info(f"Removed local file {tree_json_path}")
+
 
 log.info("[bold blue]🎉🎉🎉 We are done 🎉🎉🎉", extra={"markup": True})

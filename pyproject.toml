@@ -23,6 +23,8 @@ dependencies = [
     "anytree>=2.13.0",
     "rich>=14.0.0",
     "pytest>=8.4.1",
+    "boto3>=1.39.12",
+    "poldantic>=0.2.0",
 ]
 
 [tool.uv.sources]

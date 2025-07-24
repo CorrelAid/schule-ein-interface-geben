@@ -2,7 +2,7 @@
 db_name = "segg_data"
 pipeline_name = "segg"
 
-tree_json_path = "tree.json"
+tree_json_path = "downloads_tree.json"
 
 download_subpage = "/sv-archiv"
 

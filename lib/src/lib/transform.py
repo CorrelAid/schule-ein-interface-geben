@@ -4,15 +4,15 @@ import polars.selectors as cs
 
 def transform_api_results(pipeline_name, db_name):
     with duckdb.connect(f"{pipeline_name}.duckdb", read_only=False) as db:
-        df_posts = db.sql(f"SELECT * FROM {db_name}.posts").pl().rename({"title__rendered": "title", "content__rendered": "content" })
+        df_posts = db.sql(f"SELECT * FROM {db_name}.posts_pre").pl().rename({"title__rendered": "title", "content__rendered": "content" })
         df_stufe = db.sql(f"SELECT * FROM {db_name}.stufe").pl()
-        df_posts_stufe = db.sql(f"SELECT * FROM {db_name}.posts__stufe").pl()
+        df_posts_stufe = db.sql(f"SELECT * FROM {db_name}.posts_pre__stufe").pl()
 
         df_categories = db.sql(f"SELECT * FROM {db_name}.categories").pl()
-        df_posts_categories = db.sql(f"SELECT * FROM {db_name}.posts__categories").pl()
+        df_posts_categories = db.sql(f"SELECT * FROM {db_name}.posts_pre__categories").pl()
 
         df_tags = db.sql(f"SELECT * FROM {db_name}.tags").pl()
-        df_posts_tags = db.sql(f"SELECT * FROM {db_name}.posts__tags").pl()
+        df_posts_tags = db.sql(f"SELECT * FROM {db_name}.posts_pre__tags").pl()
 
     df = df_posts.join(df_posts_stufe, left_on="_dlt_id", right_on="_dlt_parent_id",how="full").rename({"value": "stufe_id"}).drop("_dlt_id_right")
 

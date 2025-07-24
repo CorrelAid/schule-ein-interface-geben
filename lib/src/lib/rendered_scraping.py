@@ -1,12 +1,12 @@
 import polars as pl
 from bs4 import BeautifulSoup
-import markdown
 from markdownify import markdownify
 import requests
 import re
 import concurrent.futures
-from lib.tree_functions import import_tree_from_json, find_node_by_id
-from lib.config import tree_json_path, download_subpage
+from lib.tree_functions import find_node_by_id
+from lib.config import download_subpage
+from lib.models import SectionSchema
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 import time
@@ -136,11 +136,11 @@ def extract_related_posts_row(row, max_workers):
     return lst
 
 
-def extract_related_posts(df):
+def extract_related_posts(df, max_workers):
     df_ = df.with_columns(
         pl.struct("content", "title")
         .map_elements(
-            lambda row: extract_related_posts_row(row), return_dtype=pl.List(pl.Int32)
+            lambda row: extract_related_posts_row(row, max_workers), return_dtype=pl.List(pl.Int32)
         )
         .alias("related_posts")
     )
@@ -176,9 +176,7 @@ def extract_dedicated_download_chapter_id_row(row, root_node):
             raise ValueError(f"No download link found for {row['title']}")
 
 
-def extract_dedicated_download_chapter_id(df, tree_json_path=tree_json_path):
-    root_node = import_tree_from_json(tree_json_path)
-
+def extract_dedicated_download_chapter_id(df, root_node):
     df_ = df.with_columns(
         pl.struct("content", "title")
         .map_elements(
@@ -485,6 +483,9 @@ def extract_sections(row, logger):
             else:
                 sections.append(result)
 
+    schema = SectionSchema.to_pydantic_model()
+    for section in sections:
+        schema.model_validate(section)
     return sections
 
 
