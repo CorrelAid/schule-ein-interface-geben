@@ -60,3 +60,26 @@ def test_parse_glossary():
         "DE_SH": None,
         "DE_TH": "Kreisschülersprecher:innen und LSV (Landesschülervertretung)",
     }
+
+
+    assert dicts[1] == {
+        "term": "Aufgabenprofil",
+        "definition": "Ihr schreibt transparent und klar verständlich auf, wer für welche Aufgaben zuständig ist. Das Profil ist z.B. eine Übersicht über die Aufgaben der Mitglieder im SV-Team, eine Vereinbarung über die Aufgaben von Klassensprecher:innen oder eine Beschreibung der Rolle von SV-Begleiter:innen (weitere Beispiele).",
+        "DE": None,
+        "DE_BW": None,
+        "DE_BY": None,
+        "DE_BE": None,
+        "DE_BB": None,
+        "DE_HB": None,
+        "DE_HH": None,
+        "DE_HE": None,
+        "DE_MV": None,
+        "DE_NI": None,
+        "DE_NW": None,
+        "DE_RP": None,
+        "DE_SL": None,
+        "DE_SN": None,
+        "DE_ST": None,
+        "DE_SH": None,
+        "DE_TH": None,
+    }

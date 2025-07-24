@@ -23,6 +23,12 @@ NRW:  BSV und LSV (Bezirksschüler- und Landesschülervertretung""",
         definition=None,
         DE="Bundesschülerkonferenz. Sie besteht aus den gewählten Mitgliedern von Landesschülervertretungen aus den einzelnen Bundesländern. Die BSK ist sozusagen die Lobby für Schülerinteressen auf Bundesebene.",
     ).with_inputs("raw_text", "input_term"),
+    dspy.Example(
+        raw_text="""BSK = Bundesschülerkonferenz. Sie besteht aus den gewählten Mitgliedern von Landesschülervertretungen aus den einzelnen Bundesländern. Die BSK ist sozusagen die Lobby für Schülerinteressen auf Bundesebene.""",
+        term="Aufgabenprofil",
+        definition="Ihr schreibt transparent und klar verständlich auf, wer für welche Aufgaben zuständig ist. Das Profil ist z.B. eine Übersicht über die Aufgaben der Mitglieder im SV-Team, eine Vereinbarung über die Aufgaben von Klassensprecher:innen oder eine Beschreibung der Rolle von SV-Begleiter:innen (weitere Beispiele).",
+        DE=None,
+    ).with_inputs("raw_text", "input_term")
 ]
 
 

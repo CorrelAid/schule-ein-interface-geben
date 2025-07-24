@@ -54,7 +54,7 @@ class SectionSchema(BaseSchema):
                     "accordion_section_prezi",
                     "accordion_section_youtube",
                     "accordion_section_h5p",
-                    "accordion_section_link",
+                    # "accordion_section_link",
                     "accordion_section_image",
                     "accordion_section_quiz",
                     "quiz",
@@ -95,14 +95,14 @@ class PostSchema(BaseSchema):
             "nullable": False,
         },
         {"name": "topics", "type": pl.List(pl.Utf8), "nullable": True},
-        {"name": "download_chapter_dedicated", "type": pl.Int64, "nullable": True},
+        {"name": "download_chapter_dedicated", "type": pl.Int64, "nullable": True}, # dedicated download chapter if any (a full download chapter file tree is displayed in a posts download area or main section)
         {
-            "name": "download_chapters_further",
+            "name": "download_chapters_further", # links to download chapters (no file tree displayed) from the main area or further links area
             "type": pl.List(pl.Int64),
             "nullable": True,
         },
         {"name": "book_chapter", "type": pl.Utf8, "nullable": True},
-        {"name": "related_posts", "type": pl.List(pl.Int64), "nullable": True},
+        {"name": "related_posts", "type": pl.List(pl.Int64), "nullable": True}, # linked related posts from the further links or main area
     ]
 
 
@@ -114,6 +114,7 @@ class TermSchema(BaseSchema):
             {"name": region, "type": pl.Utf8, "nullable": True}
             for region in [
                 "DE",
+                # ISO 3166-2 format for German states
                 "DE_BW",
                 "DE_BY",
                 "DE_BE",

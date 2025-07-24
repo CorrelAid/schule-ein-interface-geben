@@ -5,6 +5,8 @@ from pydantic import BaseModel, create_model
 from polars.datatypes import Enum as PlEnum
 from polars.datatypes import List as PlList
 import polars as pl
+import seaborn as sns
+import matplotlib.pyplot as plt
 
 # pydantic is not very compatible with dlt (no nested types, e.g. lists get converted to json strings), pyarrow and polars
 # Polars schemas do not provice otion to specify if a field is nullable or not: https://github.com/pola-rs/polars/issues/16090
@@ -164,3 +166,20 @@ class BaseSchema:
 
         # 5) All else → str
         return str
+
+
+def count_plot(df, col):
+    lst = [x for xs in df[col] for x in xs]
+
+    series = pl.Series(col, lst)
+    counts_df = (
+        pl.DataFrame([series])
+        .unpivot()
+        .group_by("value")
+        .len()
+        .sort("len", descending=True)
+        .rename({"value": col, "len": "count"})
+    )
+
+    sns.barplot(data=counts_df, y=col, x="count", order=counts_df[col])
+    plt.show()
