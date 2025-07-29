@@ -25,6 +25,7 @@ dependencies = [
     "pytest>=8.4.1",
     "boto3>=1.39.12",
     "poldantic>=0.2.0",
+    "networkx>=3.5",
 ]
 
 [tool.uv.sources]

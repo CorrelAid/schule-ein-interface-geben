@@ -157,7 +157,7 @@ df_posts_extended = extract_book_chapter(df_posts_extended)
 
 log.info("Extend posts with related posts")
 
-df_posts_extended = extract_related_posts(df_posts_extended, max_workers=MAX_WORKERS)
+df_posts_extended = extract_related_posts(df_posts_extended, logger=log, max_workers=MAX_WORKERS)
 
 log.info("Extend posts with dedicated download chapter id")
 

@@ -11,6 +11,7 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 import time
 import random
+import threading
 
 category_pattern = r"#\d+-(\d+)"  # get second number after root category id
 
@@ -46,13 +47,12 @@ def extract_further_download_category_ids(df):
     )
     return df_
 
+
 def extract_book_chapter_row(row):
     soup = BeautifulSoup(row["content"], "html.parser")
     buttom_widgets = soup.find_all(class_="elementor-widget-button")
     buttom_widgets = [
-        widget
-        for widget in buttom_widgets
-        if "volltext" in widget.get_text().lower()
+        widget for widget in buttom_widgets if "volltext" in widget.get_text().lower()
     ]
     if len(buttom_widgets) == 0:
         return None
@@ -72,51 +72,89 @@ def extract_book_chapter(df):
     )
     return df_
 
+cache_lock = threading.Lock()
+post_id_cache = {}
+session = requests.Session()
+
 
 def fetch_post_id(search_term):
-    search_query = (
-        f"https://meinsvwissen.de/wp-json/wp/v2/search?search={search_term}&type=post"
+    with cache_lock:
+        if search_term in post_id_cache:
+            return post_id_cache[search_term]
+
+    url = (
+        f"https://meinsvwissen.de/wp-json/wp/v2/search"
+        f"?search={search_term}&type=post"
     )
-    response = requests.get(search_query)
-    if response.status_code == 200:
-        return response.json()[0]["id"]
-    else:
-        raise Exception(f"Error: {response.status_code}")
+    resp = session.get(url, timeout=5)
+    resp.raise_for_status()
+    data = resp.json()
+    if not data:
+        raise ValueError(f"No posts found for '{search_term}'")
+
+    post_id = data[0]["id"]
+    with cache_lock:
+        post_id_cache[search_term] = post_id
+    return post_id
 
 
-post_slug_pattern = r"https://meinsvwissen.de/([\w-]+)/"
+def process_post_link(href, logger, max_retries=3):
+    backoff = 1
+    for attempt in range(1, max_retries + 1):
+        try:
+            resp = session.get(href, timeout=5)
+            resp.raise_for_status()
+
+            soup = BeautifulSoup(resp.text, "html.parser")
+            title_tag = soup.find("h1", class_="gb-headline")
+            if not title_tag or not title_tag.text.strip():
+                raise ValueError("Missing or empty title")
+
+            search_term = title_tag.text.strip().replace("–", "&#8211;")
+            logger.debug(f"Searching for post ID for '{search_term}'")
+            return fetch_post_id(search_term)
+
+        except requests.exceptions.HTTPError as e:
+            status = e.response.status_code if e.response else None
+            logger.debug(f"Attempt {attempt}/{max_retries} HTTPError {status} for {href}")
+
+            # immediately bail on 404
+            if status == 404:
+                logger.warning(f"404 Not Found: {href}")
+                return None
+
+        except Exception as e:
+            logger.debug(f"Attempt {attempt}/{max_retries} failed for {href}: {e}")
+
+        # Exponential backoff for non-404s
+        if attempt < max_retries:
+            time.sleep(backoff)
+            backoff *= 2
+        else:
+            logger.error(f"Giving up on {href} after {max_retries} attempts")
+            raise
 
 
-def process_post_link(href):
-    match = re.search(post_slug_pattern, href)
-    if match:
-        slug = match.group(1)
-        search_term = slug.replace("-", " ")
-        return fetch_post_id(search_term)
-    return None
-
-
-def extract_related_posts_row(row, max_workers):
+def extract_related_posts_row(row, logger, max_workers):
     lst = []
     to_check = []
     soup = BeautifulSoup(row["content"], "html.parser")
-    icon_items = soup.find_all(class_="elementor-icon-list-item")
-    for icon_item in icon_items:
-        a = icon_item.find("a")
-        if a is not None:
-            href = a["href"]
-            if "meinsvwissen" in href and download_subpage not in href:
-                to_check.append(href)
 
-    # posts linked in accordion
-    posts = soup.find_all("div", class_="wp-embed type-post")
-    for post in posts:
+    # icon list links
+    for item in soup.find_all(class_="elementor-icon-list-item"):
+        a = item.find("a", href=True)
+        href = a["href"] if a else ""
+        if "meinsvwissen" in href and download_subpage not in href:
+            to_check.append(href)
+
+    # embedded posts
+    for post in soup.find_all("div", class_="wp-embed type-post"):
         href = post.find("a", class_="wp-embed-more")["href"]
         to_check.append(href)
-    # posts linked in standalone text
-    text_widgets = soup.find_all("div", class_="elementor-widget-text-editor")
-    for text_widget in text_widgets:
-        for a in text_widget.find_all("a"):
+
+    # standalone text links
+    for widget in soup.find_all("div", class_="elementor-widget-text-editor"):
+        for a in widget.find_all("a", href=True):
             href = a["href"]
             if (
                 "meinsvwissen" in href
@@ -126,25 +164,41 @@ def extract_related_posts_row(row, max_workers):
             ):
                 to_check.append(href)
 
+    # resolve links in parallel, skipping 404s
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-        futures = [executor.submit(process_post_link, href) for href in to_check]
-
+        futures = {executor.submit(process_post_link, href, logger): href
+                   for href in to_check}
         for future in concurrent.futures.as_completed(futures):
-            result = future.result()
-            if result is not None:
-                lst.append(result)
+            href = futures[future]
+            try:
+                post_id = future.result()
+                if post_id is not None:
+                    lst.append(post_id)
+
+            except requests.exceptions.HTTPError as e:
+                # this only fires for non-404 HTTP errors after retries
+                status = e.response.status_code if e.response else None
+                if status == 404:
+                    logger.warning(f"404 Not Found, skipping: {href}")
+                    continue
+                raise  # re-raise other HTTP errors
+
+            except Exception as e:
+                logger.error(f"Error processing {href}: {e}")
+                raise
+
     return lst
 
 
-def extract_related_posts(df, max_workers):
-    df_ = df.with_columns(
+def extract_related_posts(df, logger, max_workers):
+    return df.with_columns(
         pl.struct("content", "title")
-        .map_elements(
-            lambda row: extract_related_posts_row(row, max_workers), return_dtype=pl.List(pl.Int32)
-        )
-        .alias("related_posts")
+          .map_elements(
+              lambda row: extract_related_posts_row(row, logger, max_workers),
+              return_dtype=pl.List(pl.Int32),
+          )
+          .alias("related_posts")
     )
-    return df_
 
 
 def extract_dedicated_download_chapter_id_row(row, root_node):

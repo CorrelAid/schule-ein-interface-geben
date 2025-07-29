@@ -115,12 +115,11 @@ def get_download_soup(wp_user, wp_pw, max_retries=3):
                 return soup
 
             except Exception as e:
-                print(f"Error: {e}")
                 retry_count += 1
                 if retry_count < max_retries:
                     print(f"Retrying... (Attempt {retry_count + 1}/{max_retries})")
                     # eponential backoff with jitter
-                    time.sleep(2**retry_count + random.uniform(2, 4))
+                    time.sleep(2.5**retry_count + random.uniform(2, 4))
                 else:
                     raise Exception(
                         f"Max retries ({max_retries}) reached in get_download_soup."
@@ -129,7 +128,7 @@ def get_download_soup(wp_user, wp_pw, max_retries=3):
         driver.quit()
 
 
-def process_id(id, index, total, max_retries=3):
+def process_id(id, index, total, max_retries=5):
     options = webdriver.ChromeOptions()
     options.add_argument("--headless")
     driver = webdriver.Chrome(options=options)
@@ -142,20 +141,20 @@ def process_id(id, index, total, max_retries=3):
     try:
         while retry_count < max_retries and not success:
             try:
-                jitter = random.uniform(2, 5.0)
+                jitter = random.uniform(3, 5)
+                time.sleep(jitter)
                 driver.get(f"https://meinsvwissen.de/sv-archiv/#36-{id}")
-                time.sleep(4 + jitter)
+                time.sleep(5)
 
                 container = driver.find_element(By.ID, "wpfd-elementor-category")
                 html = container.get_attribute("innerHTML")
                 success = True
 
             except Exception as e:
-                print(f"Error: {e}")
                 retry_count += 1
                 if retry_count < max_retries:
-                    print(f"Retrying... (Attempt {retry_count + 1}/{max_retries})")
-                    time.sleep(2**retry_count + random.uniform(2, 4))
+                    print(f"{id} - Retrying... (Attempt {retry_count + 1}/{max_retries})")
+                    time.sleep(2.5**retry_count + random.uniform(4, 6))
                 else:
                     raise Exception(f"Max retries ({max_retries}) reached for ID {id}.")
 
