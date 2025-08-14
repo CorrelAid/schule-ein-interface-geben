@@ -27,9 +27,10 @@ def test_materialsammlung():
     print(result)
     assert result == post_gt
 
-def test_in_main():
+def test_in_main_and_dedicated():
     post_id = 7327 # https://meinsvwissen.de/andere-schulformen/
     post_gt = 156
     result = get_result(post_id)
     print(result)
     assert result == post_gt
+

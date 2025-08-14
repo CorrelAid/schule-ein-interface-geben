@@ -19,7 +19,7 @@ def test_search():
     assert result == 4791
     url = "https://meinsvwissen.de/selbsttest-wie-bekannt-ist-unsere-sv/"
     result = process_post_link(url, logger=logger)
-    assert result == 4791
+    assert result == None
     
 
 def get_result(post_id):
@@ -40,12 +40,21 @@ def get_result(post_id):
 def test_related_post_in_text():
     # see also tests/test_post_main_scraping.py -> test_post_scraping_just_text
     post_id = 7022  # https://meinsvwissen.de/andere-schulformen/
-    post_gt = [6848, 4922]
+    post_gt = [6848, 4791]
     result = get_result(post_id)
     assert sorted(result) == sorted(post_gt)
 
 def test_self_loop_fail():
-    post_id = 4878  # https://meinsvwissen.de/nachhaltigkeit/
-    post_gt = [3048, 4889, 5237, 5243]
+    post_id = 5764  # https://meinsvwissen.de/bin-ich-als-klassensprecher_in-geeignet/
+    post_gt = [4801, 4891, 5286, 7290, 6588, 7401]
     result = get_result(post_id)
+    assert post_id not in result
     assert sorted(result) == sorted(post_gt)
+
+    post_id = 7081 # https://meinsvwissen.de/arbeitshilfe-gremienwahlen/
+    result = get_result(post_id)
+    assert post_id not in result
+
+    post_id = 6582
+    result = get_result(post_id)
+    assert post_id not in result

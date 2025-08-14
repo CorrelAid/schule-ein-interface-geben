@@ -26,6 +26,8 @@ dependencies = [
     "boto3>=1.39.12",
     "poldantic>=0.2.0",
     "networkx>=3.5",
+    "fastexcel>=0.14.0",
+    "pygraphviz>=1.14",
 ]
 
 [tool.uv.sources]

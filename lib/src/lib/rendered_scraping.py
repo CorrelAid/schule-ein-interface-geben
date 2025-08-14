@@ -11,9 +11,33 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 import time
 import random
+import json
 import threading
 
 category_pattern = r"#\d+-(\d+)"  # get second number after root category id
+
+transcript_df = pl.read_excel(
+    "https://meinsvwissen.de/wp-content/uploads/2025/08/transkripte.xlsx"
+)
+
+
+def get_transcript_url(media_url, df=transcript_df):
+    media_url = media_url.replace("https://", "")
+    if "youtu.be" in media_url:
+        media_url = media_url.split("/")[-1]
+    elif "youtube" in media_url:
+        if "embed" in media_url:
+            # https://www.youtube.com/embed/ZqFnl5tJi7o?si=xX18a5jYW_FkxuMk
+            media_url = media_url.split("/")[-1].split("?")[0]
+        else:
+            media_url = media_url.split("v=")[-1]
+
+    transcript_url = df.filter(
+        pl.col("url_medium").str.strip_chars().str.contains(media_url)
+    )["url_transkript"]
+    if transcript_url.is_empty():
+        return None
+    return transcript_url[0]
 
 
 def extract_further_download_category_ids(df):
@@ -72,20 +96,18 @@ def extract_book_chapter(df):
     )
     return df_
 
+
 cache_lock = threading.Lock()
 post_id_cache = {}
 session = requests.Session()
 
 
 def fetch_post_id(search_term):
+    search_term = search_term.replace("&", "").replace("–", "")
     with cache_lock:
         if search_term in post_id_cache:
             return post_id_cache[search_term]
-
-    url = (
-        f"https://meinsvwissen.de/wp-json/wp/v2/search"
-        f"?search={search_term}&type=post"
-    )
+    url = f"https://meinsvwissen.de/wp-json/wp/v2/search?search={search_term}&type=post"
     resp = session.get(url, timeout=5)
     resp.raise_for_status()
     data = resp.json()
@@ -103,6 +125,13 @@ def process_post_link(href, logger, max_retries=3):
     for attempt in range(1, max_retries + 1):
         try:
             resp = session.get(href, timeout=5)
+            logger.debug(
+                f"Attempt {attempt}/{max_retries} got status {resp.status_code} for {href}"
+            )
+            if resp.status_code == 404:
+                logger.warning(f"404 Not Found: {href}")
+                return None
+
             resp.raise_for_status()
 
             soup = BeautifulSoup(resp.text, "html.parser")
@@ -115,24 +144,30 @@ def process_post_link(href, logger, max_retries=3):
             return fetch_post_id(search_term)
 
         except requests.exceptions.HTTPError as e:
-            status = e.response.status_code if e.response else None
-            logger.debug(f"Attempt {attempt}/{max_retries} HTTPError {status} for {href}")
+            response = getattr(e, "response", None)
+            status = response.status_code if response else None
+            logger.debug(
+                f"Attempt {attempt}/{max_retries} HTTPError {status} for {href}"
+            )
 
-            # immediately bail on 404
-            if status == 404:
-                logger.warning(f"404 Not Found: {href}")
-                return None
+        except requests.exceptions.RequestException as e:
+            # Handle other request-related exceptions (ConnectionError, Timeout, etc.)
+            logger.debug(
+                f"Attempt {attempt}/{max_retries} request exception for {href}: {e}"
+            )
 
         except Exception as e:
-            logger.debug(f"Attempt {attempt}/{max_retries} failed for {href}: {e}")
+            logger.debug(
+                f"Attempt {attempt}/{max_retries} general failure for {href}: {e}"
+            )
 
-        # Exponential backoff for non-404s
+        # Retry unless it's the last attempt
         if attempt < max_retries:
             time.sleep(backoff)
             backoff *= 2
         else:
             logger.error(f"Giving up on {href} after {max_retries} attempts")
-            raise
+            raise RuntimeError(f"Failed to fetch {href} after {max_retries} attempts")
 
 
 def extract_related_posts_row(row, logger, max_workers):
@@ -140,11 +175,22 @@ def extract_related_posts_row(row, logger, max_workers):
     to_check = []
     soup = BeautifulSoup(row["content"], "html.parser")
 
+    def check(href):
+        return (
+            "meinsvwissen" in href
+            and download_subpage not in href
+            and "uploads" not in href
+            and "download" not in href
+            and "?s" not in href
+            and "feedback_geben" not in href
+        )
+
     # icon list links
     for item in soup.find_all(class_="elementor-icon-list-item"):
         a = item.find("a", href=True)
         href = a["href"] if a else ""
-        if "meinsvwissen" in href and download_subpage not in href:
+
+        if check(href):
             to_check.append(href)
 
     # embedded posts
@@ -156,18 +202,13 @@ def extract_related_posts_row(row, logger, max_workers):
     for widget in soup.find_all("div", class_="elementor-widget-text-editor"):
         for a in widget.find_all("a", href=True):
             href = a["href"]
-            if (
-                "meinsvwissen" in href
-                and download_subpage not in href
-                and "upload" not in href
-                and "download" not in href
-            ):
+            if check(href):
                 to_check.append(href)
-
     # resolve links in parallel, skipping 404s
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-        futures = {executor.submit(process_post_link, href, logger): href
-                   for href in to_check}
+        futures = {
+            executor.submit(process_post_link, href, logger): href for href in to_check
+        }
         for future in concurrent.futures.as_completed(futures):
             href = futures[future]
             try:
@@ -186,18 +227,20 @@ def extract_related_posts_row(row, logger, max_workers):
             except Exception as e:
                 logger.error(f"Error processing {href}: {e}")
                 raise
-
-    return lst
+    no_self = [x for x in lst if x != row["id"]]
+    if len(no_self) != len(lst):
+        logger.warning(f"Removed self-reference for post {row['id']}")
+    return no_self
 
 
 def extract_related_posts(df, logger, max_workers):
     return df.with_columns(
-        pl.struct("content", "title")
-          .map_elements(
-              lambda row: extract_related_posts_row(row, logger, max_workers),
-              return_dtype=pl.List(pl.Int32),
-          )
-          .alias("related_posts")
+        pl.struct("content", "title", "id")
+        .map_elements(
+            lambda row: extract_related_posts_row(row, logger, max_workers),
+            return_dtype=pl.List(pl.Int32),
+        )
+        .alias("related_posts")
     )
 
 
@@ -208,7 +251,8 @@ def extract_dedicated_download_chapter_id_row(row, root_node):
     if len(downloads) == 0:
         return None
     if len(downloads) > 1:
-        raise ValueError("More than one download section found")
+        # if there seem to be multiple download sections, only consider the first one
+        downloads = [downloads[0]]
 
     firsta = downloads[0].find(class_="wpfd-file-link")
     # if there are file links displayed already, get the parent download category
@@ -286,6 +330,8 @@ def get_prezi_transcript(url, logger):
 def process_widget(widget, post_title, post_id, logger):
     sections = []
     if "elementor-widget-text-editor" in widget["class"]:
+        if widget.find(class_="elementor-widget-text-editor"):
+            return sections
         text = markdownify(str(widget)).replace("\n", "")
         logger.debug("Appending section type: plain_text")
         sections.append(
@@ -297,17 +343,40 @@ def process_widget(widget, post_title, post_id, logger):
         )
         return sections
     ### Accordion ###
-    elif "elementor-widget-toggle" in widget["class"]:
-        toggle_sections = widget.find_all("div", class_="elementor-toggle-item")
+    elif (
+        "elementor-widget-toggle" in widget["class"]
+        or "elementor-widget-htmega-accordion-addons" in widget["class"]
+    ):
+        logger.debug("Found accordion widget")
+        if "elementor-widget-htmega-accordion-addons" in widget["class"]:
+            accordion_sections = widget.find_all("div", class_="single_accourdion")
+            accordion_type = "htmega"
+        else:
+            accordion_sections = widget.find_all("div", class_="elementor-toggle-item")
+            accordion_type = "elementor"
 
-        for toggle_section in toggle_sections:
-            title = toggle_section.find("a", class_="elementor-toggle-title").get_text()
-            toggle_content = toggle_section.find("div", class_="elementor-tab-content")
-            logger.debug(f"Accordion title: {title}")
+        for accordion_section in accordion_sections:
+            if accordion_type == "elementor":
+                title = accordion_section.find(
+                    "a", class_="elementor-toggle-title"
+                ).get_text()
+                accordion_section_content = accordion_section.find(
+                    "div", class_="elementor-tab-content"
+                )
+            else:
+                title = accordion_section.find(
+                    class_="htmega-accourdion-title"
+                ).get_text()
+                accordion_section_content = accordion_section.find(
+                    "div", class_="accordion-content"
+                )
+
+            logger.debug(f"Accordion section title: {title}")
+
             ## Handle text in toggle section ##
             # This often comes before the actual content as its description
-            if toggle_content.find_all("elementor-widget-text-editor"):
-                for text_editor in toggle_content.find_all(
+            if accordion_section_content.find_all("elementor-widget-text-editor"):
+                for text_editor in accordion_section_content.find_all(
                     "elementor-widget-text-editor"
                 ):
                     text = markdownify(str(text_editor)).replace("\n", "")
@@ -322,8 +391,8 @@ def process_widget(widget, post_title, post_id, logger):
                             "post_id": post_id,
                         }
                     )
-            elif toggle_content.find("p"):
-                for p in toggle_content.find_all("p"):
+            if accordion_section_content.find("p"):
+                for p in accordion_section_content.find_all("p"):
                     text = p.get_text().strip()
                     if text != "" and text != "\xa0":
                         logger.debug(
@@ -338,38 +407,49 @@ def process_widget(widget, post_title, post_id, logger):
                             }
                         )
 
-            if toggle_content.find_all("iframe"):
+            if accordion_section_content.find_all("iframe"):
                 logger.debug(f"Found iframes in '{title}' of post '{post_title}'")
-                for iframe in toggle_content.find_all("iframe"):
+                for iframe in accordion_section_content.find_all("iframe"):
                     if iframe.has_attr("src"):
                         if "prezi" in iframe["src"]:
                             external_link = iframe["src"]
-                            text = get_prezi_transcript_with_retry(
-                                external_link, logger
-                            )
+                            # text = get_prezi_transcript_with_retry(
+                            #     external_link, logger
+                            # )
                             logger.debug(
                                 f"Appending section type: accordion_section_prezi for post '{post_title}' ({post_id}) and accordion section '{title}'"
                             )
+                            transcript_url = get_transcript_url(external_link)
                             sections.append(
                                 {
                                     "title": title,
                                     "type": "accordion_section_prezi",
                                     "external_link": external_link,
-                                    "text": text,
                                     "post_id": post_id,
+                                    "transcript_url": transcript_url,
                                 }
                             )
-                        elif "youtube" in iframe["src"]:
+                        elif "youtube" in iframe["src"] or "youtu.be" in iframe["src"]:
                             external_link = iframe["src"]
+                            if iframe.has_attr("title"):
+                                yt_title = iframe["title"]
+                            elif iframe.find("a", class_="ytp-title-link"):
+                                yt_title = iframe.find(
+                                    "a", class_="ytp-title-link"
+                                ).text
+                            else:
+                                yt_title = None
                             logger.debug(
                                 f"Appending section type: accordion_section_youtube for post '{post_title}' ({post_id}) and accordion section '{title}'"
                             )
+                            transcript_url = get_transcript_url(external_link)
                             sections.append(
                                 {
-                                    "title": iframe["title"],
+                                    "title": yt_title,
                                     "type": "accordion_section_youtube",
                                     "external_link": external_link,
                                     "post_id": post_id,
+                                    "transcript_url": transcript_url,
                                 }
                             )
                     elif iframe.has_attr("class"):
@@ -388,23 +468,53 @@ def process_widget(widget, post_title, post_id, logger):
                         logger.debug(
                             f"Unknown Accordion iframe {title} {post_title}, {post_id}"
                         )
-            elif toggle_content.find("img"):
+            if accordion_section_content.find("img"):
                 logger.debug(f"Found images in '{title}' of post '{post_title}'")
-                for img in toggle_content.find_all("img"):
-                    logger.debug(
-                        f"Appending section type: accordion_section_image for post '{post_title}' ({post_id}) and accordion section '{title}'"
-                    )
-                    sections.append(
-                        {
-                            "title": title,
-                            "type": "accordion_section_image",
-                            "external_link": img["src"],
-                            "post_id": post_id,
-                        }
-                    )
+                for img in accordion_section_content.find_all("img"):
+                    # Check if the image is inside an anchor tag, sometimes images are used as thumbnails
+                    if img.parent.name == "a":
+                        if "prezi" in img.parent["href"]:
+                            logger.debug(
+                                f"Appending section type: accordion_section_prezi for post '{post_title}' ({post_id}) and accordion section '{title}'"
+                            )
+                            sections.append(
+                                {
+                                    "title": title,
+                                    "type": "accordion_section_prezi",
+                                    "external_link": img.parent["href"],
+                                    "post_id": post_id,
+                                    "transcript_url": get_transcript_url(
+                                        img.parent["href"]
+                                    ),
+                                }
+                            )
+                        else:
+                            logger.debug(
+                                f"Appending section type: accordion_section_image for post '{post_title}' ({post_id}) and accordion section '{title}'"
+                            )
+                            sections.append(
+                                {
+                                    "title": title,
+                                    "type": "accordion_section_image",
+                                    "external_link": img.parent["href"],
+                                    "post_id": post_id,
+                                }
+                            )
+                    else:
+                        logger.debug(
+                            f"Appending section type: accordion_section_image for post '{post_title}' ({post_id}) and accordion section '{title}'"
+                        )
+                        sections.append(
+                            {
+                                "title": title,
+                                "type": "accordion_section_image",
+                                "external_link": img["src"],
+                                "post_id": post_id,
+                            }
+                        )
 
-            elif toggle_content.find(class_="qsm-before-message"):
-                quiz_message = toggle_content.find(
+            if accordion_section_content.find(class_="qsm-before-message"):
+                quiz_message = accordion_section_content.find(
                     class_="qsm-before-message"
                 ).get_text()
                 logger.debug(
@@ -418,15 +528,13 @@ def process_widget(widget, post_title, post_id, logger):
                         "post_id": post_id,
                     }
                 )
-            elif toggle_content.find("div", class_="wp-embed type-post"):
-                None
-            else:
-                logger.debug(
-                    f"Unknown Accordion section {title}, {post_title}, {post_id}"
-                )
+            if accordion_section_content.find("div", class_="wp-embed type-post"):
+                pass
 
-        return sections
+        if len([x for x in sections if x["type"] is not None]) > 0:
+            return sections
     elif "elementor-widget-shortcode" in widget["class"]:
+        logger.debug(f"Found shortcode widget for post '{post_title}' ({post_id})'")
         if widget.find(class_="qsm-before-message"):
             quiz_message = widget.find(class_="qsm-before-message").get_text()
             logger.debug(
@@ -438,16 +546,17 @@ def process_widget(widget, post_title, post_id, logger):
             for iframe in widget.find_all("iframe"):
                 if "prezi" in iframe["src"]:
                     external_link = iframe["src"]
-                    text = get_prezi_transcript_with_retry(external_link, logger)
+                    # text = get_prezi_transcript_with_retry(external_link, logger)
                     logger.debug(
                         f"Appending section type: prezi for post '{post_title}' ({post_id}) and external link '{external_link}'"
                     )
+                    transcript_url = get_transcript_url(external_link)
                     sections.append(
                         {
                             "type": "prezi",
                             "external_link": external_link,
-                            "text": text,
                             "post_id": post_id,
+                            "transcript_url": transcript_url,
                         }
                     )
                     continue
@@ -465,6 +574,7 @@ def process_widget(widget, post_title, post_id, logger):
                             }
                         )
                         continue
+
                 else:
                     logger.warning(f"Unknown Standalone iframe {post_title}, {post_id}")
             return sections
@@ -502,6 +612,36 @@ def process_widget(widget, post_title, post_id, logger):
         )
         sections.append({"type": "video", "external_link": src, "post_id": post_id})
         return sections
+    elif "elementor-widget-video" in widget["class"]:
+        logger.debug(f"Found video widget for post '{post_title}' ({post_id})")
+        data_settings = widget["data-settings"]
+        if data_settings:
+            data_settings = json.loads(data_settings)
+            video_type = data_settings["video_type"]
+            if video_type == "youtube":
+                external_link = data_settings["youtube_url"].replace("\/", "/")
+                logger.debug(
+                    f"Appending section type: youtube for post '{post_title}' ({post_id})'"
+                )
+                transcript_url = get_transcript_url(external_link)
+                sections.append(
+                    {
+                        "title": None,
+                        "type": "youtube",
+                        "external_link": external_link,
+                        "post_id": post_id,
+                        "transcript_url": transcript_url,
+                    }
+                )
+                return sections
+            else:
+                logger.warning(
+                    f"Unknown video type {video_type} for post '{post_title}' ({post_id})"
+                )
+        else:
+            logger.warning(
+                f"No data-settings found in video widget for post '{post_title}' ({post_id})"
+            )
     elif "elementor-widget-wpfd_choose_category":
         return None
     elif "elementor-widget-icon-list" in widget["class"]:
@@ -516,7 +656,6 @@ def process_widget(widget, post_title, post_id, logger):
         )
         return None
 
-
 def extract_sections(row, logger):
     jitter = random.uniform(0.5, 1.5)
     time.sleep(jitter)
@@ -527,7 +666,6 @@ def extract_sections(row, logger):
         for widget in widgets
         if not widget.find_parent(class_="elementor-tab-content")
     ]
-
     sections = []
     for widget in widgets:
         result = process_widget(widget, row["title"], row["id"], logger)

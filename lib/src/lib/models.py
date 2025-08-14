@@ -1,6 +1,8 @@
+from xmlrpc.client import FastMarshaller, FastUnmarshaller
 from anytree import NodeMixin
 import polars as pl
 from lib import BaseSchema
+
 
 class DownloadCategoryNode(NodeMixin):
     def __init__(
@@ -59,6 +61,7 @@ class SectionSchema(BaseSchema):
                     "accordion_section_quiz",
                     "quiz",
                     "prezi",
+                    "youtube",
                     "h5p",
                     "flipcard",
                     "image",
@@ -68,6 +71,7 @@ class SectionSchema(BaseSchema):
             "nullable": False,
         },
         {"name": "external_link", "type": pl.Utf8, "nullable": True},
+        {"name": "transcript_url", "type": pl.Utf8, "nullable": True},
     ]
 
 
@@ -95,14 +99,22 @@ class PostSchema(BaseSchema):
             "nullable": False,
         },
         {"name": "topics", "type": pl.List(pl.Utf8), "nullable": True},
-        {"name": "download_chapter_dedicated", "type": pl.Int64, "nullable": True}, # dedicated download chapter if any (a full download chapter file tree is displayed in a posts download area or main section)
         {
-            "name": "download_chapters_further", # links to download chapters (no file tree displayed) from the main area or further links area
+            "name": "download_chapter_dedicated",
+            "type": pl.Int64,
+            "nullable": True,
+        },  # dedicated download chapter if any (a full download chapter file tree is displayed in a posts download area or main section)
+        {
+            "name": "download_chapters_further",  # links to download chapters (no file tree displayed) from the main area or further links area
             "type": pl.List(pl.Int64),
             "nullable": True,
         },
         {"name": "book_chapter", "type": pl.Utf8, "nullable": True},
-        {"name": "related_posts", "type": pl.List(pl.Int64), "nullable": True}, # linked related posts from the further links or main area
+        {
+            "name": "related_posts",
+            "type": pl.List(pl.Int64),
+            "nullable": True,
+        },  # linked related posts from the further links or main area
     ]
 
 
@@ -136,11 +148,14 @@ class TermSchema(BaseSchema):
     ]
 
 
-# class Book(BaseModel):
-#     id: int
-#     title: str
-#     subtitle: str
-#     region_name: str
-#     region_code: str = Field(
-#         ..., pattern=r"^DE-[A-Z]{2}$"
-#     )  # ISO 3166-2 format for German states
+class PublicationSchema(BaseSchema):
+    fields = [
+        {"name": "key", "type": pl.Utf8, "nullable": False},
+        {"name": "type", "type": pl.Utf8, "nullable": False},
+        {"name": "title", "type": pl.Utf8, "nullable": False},
+        {"name": "authors", "type": pl.List(pl.Utf8), "nullable": True},
+        {"name": "tags", "type": pl.List(pl.Utf8), "nullable": True},
+        {"name": "abstract", "type": pl.Utf8, "nullable": True},
+        {"name": "date", "type": pl.Utf8, "nullable": True},
+        {"name": "url", "type": pl.Utf8, "nullable": True},
+    ]

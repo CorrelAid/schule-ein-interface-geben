@@ -1,3 +1,4 @@
+from encodings import ptcp154
 import dlt
 import argparse
 import random
@@ -20,7 +21,7 @@ from lib.custom_scraping_sources import (
 from lib.transform import transform_api_results
 from lib.dlt_defs import api_source
 from lib.config import tree_json_path, llm_base_url, llm_model, db_name, pipeline_name
-from lib.models import DownloadSchema, PostSchema, TermSchema, SectionSchema
+from lib.models import DownloadSchema, PostSchema, TermSchema, SectionSchema,PublicationSchema
 from lib.rendered_scraping import (
     process_posts_row,
     extract_further_download_category_ids,
@@ -28,6 +29,7 @@ from lib.rendered_scraping import (
     extract_related_posts,
     extract_dedicated_download_chapter_id,
 )
+from lib.pulication_helpers import get_zotero_api_data, convert_zotero_api_results
 import pyarrow.parquet as pq
 
 load_dotenv()
@@ -88,12 +90,27 @@ pipeline = dlt.pipeline(
     destination="duckdb",
     dataset_name=db_name,
 )
+#######################################
+#######################################
+
+log.info(
+    "[bold blue]🏭 Pipeline Stage 0/5: Getting publications from zotero",
+    extra={"markup": True},
+)
+
+zotero_api_data = get_zotero_api_data()
+
+zotero_df = convert_zotero_api_results(zotero_api_data)
+
+zotero_df = zotero_df.cast(PublicationSchema.to_polars_schema())
+
+log.info(f"We have {len(zotero_df)} publications from zotero")
 
 #######################################
 #######################################
 
 log.info(
-    "[bold blue]🏭 Pipeline Stage 1/4: Get download files and their categories",
+    "[bold blue]🏭 Pipeline Stage 1/5: Get download files and their categories",
     extra={"markup": True},
 )
 log.info(
@@ -130,11 +147,10 @@ log.info(
     f"We extracted {len(downloads_df)} download urls from {len(category_ids)} categories"
 )
 
-
 ########################################
 ########################################
 
-log.info("[bold blue]🏭 Pipeline Stage 2/4: Get posts", extra={"markup": True})
+log.info("[bold blue]🏭 Pipeline Stage 2/5: Get posts", extra={"markup": True})
 log.info("Requesting API")
 
 if args.smoke_test:
@@ -157,7 +173,9 @@ df_posts_extended = extract_book_chapter(df_posts_extended)
 
 log.info("Extend posts with related posts")
 
-df_posts_extended = extract_related_posts(df_posts_extended, logger=log, max_workers=MAX_WORKERS)
+df_posts_extended = extract_related_posts(
+    df_posts_extended, logger=log, max_workers=MAX_WORKERS
+)
 
 log.info("Extend posts with dedicated download chapter id")
 
@@ -168,7 +186,7 @@ df_posts_extended = df_posts_extended.cast(PostSchema.to_polars_schema())
 ########################################
 ########################################
 
-log.info("[bold blue]🏭 Pipeline Stage 3/4: Scrape Sections", extra={"markup": True})
+log.info("[bold blue]🏭 Pipeline Stage 3/5: Scrape Sections", extra={"markup": True})
 
 
 def process_row(row):
@@ -196,11 +214,13 @@ post_ids = df_posts_extended["id"].unique().to_list()
 missing = set(sec_ids) - set(post_ids)
 assert not missing, f"Orphan section post_ids: {missing}"
 
+
+assert section_df["type"].is_null().sum() == 0, "Section type is null"
 ########################################
 ########################################
 
 log.info(
-    "[bold blue]🏭 Pipeline Stage 4/4: Scraping Glossary and parsing terms",
+    "[bold blue]🏭 Pipeline Stage 4/5: Scraping Glossary and parsing terms",
     extra={"markup": True},
 )
 
@@ -221,9 +241,10 @@ log.info(
     extra={"markup": True},
 )
 
-table_names = ["posts", "sections", "glossary_terms", "downloads"]
-dfs = [df_posts_extended, section_df, term_df, downloads_df]
+table_names = ["publications", "posts", "sections", "glossary_terms", "downloads"]
+dfs = [zotero_df,df_posts_extended, section_df, term_df, downloads_df]
 schemas = [
+    PublicationSchema.to_pyarrow_schema(),
     PostSchema.to_pyarrow_schema(),
     SectionSchema.to_pyarrow_schema(),
     TermSchema.to_pyarrow_schema(),
@@ -231,11 +252,15 @@ schemas = [
 ]
 
 for idx, table_name in enumerate(table_names):
-    local_file_path = f"{table_name}.parquet"
+    log.info(f"Uploading {table_name} to S3")
+    if args.smoke_test:
+        local_file_path = f"smoke_test_{table_name}.parquet"
+    else:
+        local_file_path = f"{table_name}.parquet"
+ 
     table = dfs[idx].to_arrow().select(schemas[idx].names).cast(schemas[idx])
     pq.write_table(table, local_file_path)
 
-    log.info(f"Uploading {table_name} to S3")
     client.upload_file(
         local_file_path,
         S3_BUCKET_NAME,
@@ -246,7 +271,12 @@ for idx, table_name in enumerate(table_names):
     os.remove(local_file_path)
     log.info(f"Removed local file {local_file_path}")
 
+
+if args.smoke_test:
+    tree_json_path = f"smoke_test_{tree_json_path}"
+
 export_tree_to_json(root_node, tree_json_path)
+
 log.info(f"Uploading {tree_json_path} to S3")
 client.upload_file(
     tree_json_path,

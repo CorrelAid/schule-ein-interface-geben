@@ -183,7 +183,7 @@ def get_file_links(category_ids, max_workers=4):
         with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
             future_to_id = {
                 executor.submit(process_id, id, index, len(category_ids)): id
-                for index, id in enumerate(category_ids)
+                for index, id in enumerate(category_ids) if id  
             }
 
             for future in concurrent.futures.as_completed(future_to_id):

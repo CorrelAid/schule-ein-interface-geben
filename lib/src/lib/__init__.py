@@ -9,8 +9,8 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 
 # pydantic is not very compatible with dlt (no nested types, e.g. lists get converted to json strings), pyarrow and polars
-# Polars schemas do not provice otion to specify if a field is nullable or not: https://github.com/pola-rs/polars/issues/16090
-# Pyarrow schema do not support enums
+# Polars schemas do not provide otion to specify if a field is nullable or not: https://github.com/pola-rs/polars/issues/16090
+# Pyarrow schemas do not support enums
 # Cause we want both for validation (at different stages), we need to convert base schema info to both
 
 
