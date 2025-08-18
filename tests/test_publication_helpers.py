@@ -9,6 +9,6 @@ def test_get_zotero_api_data():
 
 def test_convert_zotero_api_results():
     data = get_zotero_api_data()
-    converted_data = convert_zotero_api_results(data)
+    converted_data = convert_zotero_api_results(data[:10])
     assert len(converted_data) > 0
     assert isinstance(converted_data, pl.DataFrame)

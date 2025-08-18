@@ -1,5 +1,6 @@
 from xmlrpc.client import FastMarshaller, FastUnmarshaller
 from anytree import NodeMixin
+from lib.config import valid_jurisdictions, valid_school_types
 import polars as pl
 from lib import BaseSchema
 
@@ -124,26 +125,7 @@ class TermSchema(BaseSchema):
         {"name": "definition", "type": pl.Utf8, "nullable": True},
         *[
             {"name": region, "type": pl.Utf8, "nullable": True}
-            for region in [
-                "DE",
-                # ISO 3166-2 format for German states
-                "DE_BW",
-                "DE_BY",
-                "DE_BE",
-                "DE_BB",
-                "DE_HB",
-                "DE_HH",
-                "DE_HE",
-                "DE_MV",
-                "DE_NI",
-                "DE_NW",
-                "DE_RP",
-                "DE_SL",
-                "DE_SN",
-                "DE_ST",
-                "DE_SH",
-                "DE_TH",
-            ]
+            for region in list(valid_jurisdictions.keys())
         ],
     ]
 
@@ -153,9 +135,29 @@ class PublicationSchema(BaseSchema):
         {"name": "key", "type": pl.Utf8, "nullable": False},
         {"name": "type", "type": pl.Utf8, "nullable": False},
         {"name": "title", "type": pl.Utf8, "nullable": False},
-        {"name": "authors", "type": pl.List(pl.Utf8), "nullable": True},
-        {"name": "tags", "type": pl.List(pl.Utf8), "nullable": True},
+        {"name": "authors", "type": pl.List(pl.Utf8), "nullable": False},
         {"name": "abstract", "type": pl.Utf8, "nullable": True},
-        {"name": "date", "type": pl.Utf8, "nullable": True},
-        {"name": "url", "type": pl.Utf8, "nullable": True},
+        {"name": "date", "type": pl.Utf8, "nullable": False},
+        {"name": "url", "type": pl.Utf8, "nullable": False},
+        {"name": "jurisdiction", "type": pl.Enum(list(valid_jurisdictions.keys())), "nullable": True},
+        {"name": "school_type", "type": pl.Enum(list(valid_school_types.keys())), "nullable": True},
+        {"name": "tags", "type": pl.List(pl.Utf8), "nullable": True}
+    ]
+
+
+class LawSchema(BaseSchema):
+    fields = [
+        {"name": "jurisdiction", "type": pl.Utf8, "nullable": False},
+        {
+            "name": "resources",
+            "type": pl.List(
+                pl.Struct(
+                    fields=[
+                        {"name": "url", "type": pl.Utf8, "nullable": False},
+                        {"name": "type", "type": pl.Utf8, "nullable": False},
+                    ]
+                )
+            ),
+            "nullable": False,
+        },
     ]

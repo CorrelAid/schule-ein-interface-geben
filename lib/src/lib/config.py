@@ -28,7 +28,9 @@ valid_jurisdictions = {
 }
 
 
-
+valid_school_types = {
+    "elementary": "Elementary School"
+}
 llm_base_url="https://openrouter.ai/api/v1"
 # llm_model="mistralai/mistral-small-3.2-24b-instruct"
 
