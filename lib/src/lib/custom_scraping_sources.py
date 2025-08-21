@@ -95,7 +95,7 @@ def get_download_soup(wp_user, wp_pw, max_retries=3):
         while retry_count < max_retries:
             try:
                 driver.get("https://meinsvwissen.de/wp-admin/admin.php?page=wpfd")
-
+                time.sleep(10)
                 user = driver.find_element(By.ID, "user_login")
                 pw = driver.find_element(By.ID, "user_pass")
                 submit_button = driver.find_element(By.ID, "wp-submit")

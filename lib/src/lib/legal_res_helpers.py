@@ -29,7 +29,7 @@ def scrape_legal_page(url, timeout=35):
 
     driver.get(url)
 
-    time.sleep(5)
+    time.sleep(8)
 
     if "wolterskluwer" in url:
         version = "wolterskluwer"
