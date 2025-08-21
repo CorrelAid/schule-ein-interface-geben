@@ -13,14 +13,7 @@ import matplotlib.pyplot as plt
 # Pyarrow schemas do not support enums
 # Cause we want both for validation (at different stages), we need to convert base schema info to both
 
-
 class BaseSchema:
-    """
-    Base class for schema definitions.
-    Subclasses must define a `fields` class variable:
-      List of dicts with keys: "name", "type", "nullable".
-    """
-
     fields: ClassVar[List[Dict[str, Any]]] = []
 
     @classmethod
@@ -68,6 +61,8 @@ class BaseSchema:
             return pa.string()
         if ty is pl.Date:
             return pa.date32()
+        if ty is pl.Binary:
+            return pa.binary()
         if ty is pl.Datetime:
             return pa.timestamp("us")
         # 2) Enums → dictionary
@@ -83,10 +78,6 @@ class BaseSchema:
 
     @classmethod
     def to_pydantic_model(cls, model_name: Optional[str] = None) -> Type[BaseModel]:
-        """
-        Dynamically build and return a Pydantic BaseModel subclass
-        that matches this schema. Use `.parse_obj(...)` to validate.
-        """
         # 1) Determine model class name
         model_name = model_name or f"{cls.__name__}Model"
 
@@ -135,6 +126,7 @@ class BaseSchema:
             Float32,
             Float64,
             Boolean,
+            Binary
         )
 
         # 1) Explicit numeric + bool mappings
@@ -144,6 +136,8 @@ class BaseSchema:
             return float
         if ty is Boolean:
             return bool
+        if ty is Binary:
+            return bytes
 
         # 2) List[...] → List[inner_type]
         if isinstance(ty, pl.datatypes.List):

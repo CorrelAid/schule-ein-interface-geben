@@ -11,6 +11,11 @@ import time
 from lib.models import LegalResourceSchema
 from rich.progress import Progress, TimeRemainingColumn, BarColumn, TextColumn
 
+from html_sanitizer.sanitizer import DEFAULT_SETTINGS
+
+DEFAULT_SETTINGS["attributes"] = {"a": ("name", "target", "title", "id", "rel")}
+
+
 def create_chrome_driver():
     options = Options()
     options.add_argument("--headless=new")
@@ -18,13 +23,14 @@ def create_chrome_driver():
     options.add_argument("--disable-dev-shm-usage")
     return webdriver.Chrome(options=options)
 
-def scrape_legal_page(url,timeout=30):
+
+def scrape_legal_page(url, timeout=35):
     driver = create_chrome_driver()
 
     driver.get(url)
 
-    time.sleep(4)
-    
+    time.sleep(5)
+
     if "wolterskluwer" in url:
         version = "wolterskluwer"
     else:
@@ -41,7 +47,7 @@ def scrape_legal_page(url,timeout=30):
         )
 
         button.click()
-        time.sleep(4)
+        time.sleep(5)
 
         content_class = "docbody"
 
@@ -57,7 +63,7 @@ def scrape_legal_page(url,timeout=30):
         )
 
         button.click()
-        time.sleep(4)
+        time.sleep(5)
 
         ###### Scrolling through the page to load lazyload elements ಠ_ಠ
         scroll_increment_ratio = 25
@@ -86,7 +92,7 @@ def scrape_legal_page(url,timeout=30):
 
             last_position = current_position
         ######
-        
+
         content_class = "block-system-main-block"
 
         page_source = driver.page_source
@@ -126,7 +132,7 @@ def wait_jportal_load(url):
     driver = create_chrome_driver()
 
     driver.get(url)
-    time.sleep(4)
+    time.sleep(5)
     page_source = driver.page_source
     driver.quit()
 
@@ -138,12 +144,11 @@ def wait_jportal_load(url):
     else:
         raise RuntimeError("No element with class 'docbody' found.")
 
-
 def get_legal_resources(cfg, debug=False, logger=None):
     """
-   (/¯ಠ_ಠ)/¯ ~ ┻━┻  
+    Very open data
     """
-    sanitizer = Sanitizer()
+    sanitizer = Sanitizer(settings=DEFAULT_SETTINGS)
     schema = LegalResourceSchema.to_pydantic_model()
     law_resources = []
     with Progress(

@@ -139,6 +139,7 @@ class PublicationSchema(BaseSchema):
         {"name": "abstract", "type": pl.Utf8, "nullable": True},
         {"name": "date", "type": pl.Utf8, "nullable": False},
         {"name": "url", "type": pl.Utf8, "nullable": False},
+        {"name": "pdf_binary", "type": pl.Binary, "nullable": False},
         {
             "name": "jurisdiction",
             "type": pl.Enum(list(valid_jurisdictions.keys())),

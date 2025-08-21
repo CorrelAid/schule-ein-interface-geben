@@ -30,6 +30,7 @@ dependencies = [
     "pygraphviz>=1.14",
     "html-sanitizer>=2.6.0",
     "webdriver-manager>=4.0.2",
+    "certifi>=2025.7.14",
 ]
 
 [tool.uv.sources]

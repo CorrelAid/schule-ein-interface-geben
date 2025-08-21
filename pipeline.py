@@ -150,13 +150,13 @@ log.info(
     f"[bold blue]🏭 Pipeline Stage {step}/{len(table_names)}: Getting publications from zotero",
     extra={"markup": True},
 )
-
-zotero_api_data = get_zotero_api_data()
-
+sample = False
 if args.smoke_test:
-    cfg = random.choices(cfg, k=4)
+    sample = True
 
-zotero_df = convert_zotero_api_results(zotero_api_data)
+zotero_api_data = get_zotero_api_data(sample=sample)
+
+zotero_df = convert_zotero_api_results(zotero_api_data,  logger=log)
 
 zotero_df = zotero_df.cast(PublicationSchema.to_polars_schema())
 
@@ -214,7 +214,6 @@ log.info(
 log.info("Requesting API")
 
 if args.smoke_test:
-    # limit yielded pages
     api_source.add_limit(1)
 
 load_info = pipeline.run(api_source)
@@ -251,10 +250,8 @@ log.info(
     extra={"markup": True},
 )
 
-
 def process_row(row):
     return process_posts_row(row, logger=log)
-
 
 sections = []
 df_rows = list(df_posts.iter_rows(named=True))
@@ -270,13 +267,11 @@ with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
 
 section_df = pl.DataFrame(sections, schema_overrides=SectionSchema.to_polars_schema())
 
-
 # check that all sections have valid posts ids
 sec_ids = section_df["post_id"].unique().to_list()
 post_ids = df_posts_extended["id"].unique().to_list()
 missing = set(sec_ids) - set(post_ids)
 assert not missing, f"Orphan section post_ids: {missing}"
-
 
 assert section_df["type"].is_null().sum() == 0, "Section type is null"
 step += 1
