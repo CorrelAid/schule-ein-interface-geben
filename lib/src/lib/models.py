@@ -139,25 +139,29 @@ class PublicationSchema(BaseSchema):
         {"name": "abstract", "type": pl.Utf8, "nullable": True},
         {"name": "date", "type": pl.Utf8, "nullable": False},
         {"name": "url", "type": pl.Utf8, "nullable": False},
-        {"name": "jurisdiction", "type": pl.Enum(list(valid_jurisdictions.keys())), "nullable": True},
-        {"name": "school_type", "type": pl.Enum(list(valid_school_types.keys())), "nullable": True},
-        {"name": "tags", "type": pl.List(pl.Utf8), "nullable": True}
+        {
+            "name": "jurisdiction",
+            "type": pl.Enum(list(valid_jurisdictions.keys())),
+            "nullable": True,
+        },
+        {
+            "name": "school_type",
+            "type": pl.Enum(list(valid_school_types.keys())),
+            "nullable": True,
+        },
+        {"name": "tags", "type": pl.List(pl.Utf8), "nullable": True},
     ]
 
 
-class LawSchema(BaseSchema):
+class LegalResourceSchema(BaseSchema):
     fields = [
-        {"name": "jurisdiction", "type": pl.Utf8, "nullable": False},
+        {"name": "url", "type": pl.Utf8, "nullable": False},
+        {"name": "type", "type": pl.Utf8, "nullable": False},
+        {"name": "title", "type": pl.Utf8, "nullable": False},
+        {"name": "html", "type": pl.Utf8, "nullable": False},
         {
-            "name": "resources",
-            "type": pl.List(
-                pl.Struct(
-                    fields=[
-                        {"name": "url", "type": pl.Utf8, "nullable": False},
-                        {"name": "type", "type": pl.Utf8, "nullable": False},
-                    ]
-                )
-            ),
+            "name": "jurisdiction",
+            "type": pl.Enum(list(valid_jurisdictions.keys())),
             "nullable": False,
         },
     ]

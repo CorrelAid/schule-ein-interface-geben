@@ -6,7 +6,7 @@
         "permalink": "https://gesetze.berlin.de/perma?a=SchulG_BE",
         "title": "SchulG",
         "type": "Schulgesetz",
-        "retrieval_strategy": "selenium"
+        "strategy": "selenium"
       }
     ]
   },
@@ -17,7 +17,7 @@
         "title": "BbgSchulG",
         "permalink": "https://bravors.brandenburg.de/gesetze/bbgschulg",
         "type": "Schulgesetz",
-        "retrieval_strategy": "soup",
+        "strategy": "soup",
         "area_class": "reiterbox_innen"
       }
     ]
@@ -29,13 +29,13 @@
         "title": "ThürSchulG",
         "permalink": "https://landesrecht.thueringen.de/perma?j=SchulG_TH",
         "type": "Schulgesetz",
-        "retrieval_strategy": "selenium"
+        "strategy": "selenium"
       },
       {
         "title": "ThürSchulO",
         "permalink": "https://landesrecht.thueringen.de/perma?a=SchulO_TH",
         "type": "Schulordnung",
-        "retrieval_strategy": "selenium"
+        "strategy": "selenium"
       }
     ]
   },
@@ -46,7 +46,7 @@
         "title": "SchulG LSA",
         "permalink": "https://www.landesrecht.sachsen-anhalt.de/bsst/document/jlr-SchulGST2018rahmen",
         "type": "Schulgesetz",
-        "retrieval_strategy": "selenium"
+        "strategy": "selenium"
       }
     ]
   },
@@ -56,12 +56,14 @@
       {
         "title": "SächsSchulG",
         "permalink": "https://www.revosax.sachsen.de/vorschrift/4192-Saechsisches-Schulgesetz",
+        "strategy": "direct",
         "html_url": "https://www.revosax.sachsen.de/vorschrift_gesamt/4192/47431.html",
         "type": "Schulgesetz"
       },
       {
         "title": "SMVO",
         "permalink": "https://www.revosax.sachsen.de/vorschrift/1763-Schuelermitwirkungsverordnung",
+        "strategy": "direct",
         "html_url": "https://www.revosax.sachsen.de/vorschrift_gesamt/1763/39925.html",
         "type": "Schülermitwirkungsverordnung"
       }
@@ -72,7 +74,7 @@
     "resources": [
       {
         "permalink": "https://www.landesrecht-mv.de/bsmv/document/jlr-SchulGMV2010rahmen",
-        "retrieval_strategy": "selenium",
+        "strategy": "selenium",
         "title": "SchulG M-V",
         "type": "Schulgesetz"
       }
@@ -83,13 +85,13 @@
     "resources": [
       {
         "permalink": "https://www.landesrecht-bw.de/perma?a=SchulG_BW",
-        "retrieval_strategy": "selenium",
+        "strategy": "selenium",
         "type": "Schulgesetz",
         "title": "SchG"
       },
       {
         "permalink": "https://www.landesrecht-bw.de/perma?a=SMVV_BW",
-        "retrieval_strategy": "selenium",
+        "strategy": "selenium",
         "type": "Schülermitverantwortungsverordnung",
         "title": "SMV-Verordnung"
       }
@@ -102,14 +104,14 @@
         "permalink": "https://www.gesetze-bayern.de/Content/Document/BaySchO2016/true",
         "type": "Schulordnung",
         "title": "BaySchO",
-        "retrieval_strategy": "soup",
+        "strategy": "soup",
         "area_class": "document-all"
       },
       {
         "permalink": "https://www.gesetze-bayern.de/Content/Document/BayEUG/true",
         "type": "Gesetz über das Erziehungs- und Unterrichtswesen",
         "title": "BayEUG",
-        "retrieval_strategy": "soup",
+        "strategy": "soup",
         "area_class": "document-all"
       }
     ]
@@ -121,14 +123,14 @@
         "permalink": "https://www.transparenz.bremen.de/metainformationen/bremisches-schulgesetz-bremschulg-in-der-fassung-der-bekanntmachung-vom-28-juni-2005-270394?asl=bremen203_tpgesetz.c.55340.de&template=20_gp_ifg_meta_detail_d",
         "type": "Schulgesetz",
         "title": "BremSchulG",
-        "retrieval_strategy": "soup",
+        "strategy": "soup",
         "area_class": "main_article gesetz"
       },
       {
-        "pdf_url": "https://www.transparenz.bremen.de/metainformationen/wahlordnung-fuer-die-wahlen-in-der-schuelerschaft-schuelwahlo-vom-29-juni-2022-182367?template=20_gp_ifg_meta_detail_d",
+        "permalink": "https://www.transparenz.bremen.de/metainformationen/wahlordnung-fuer-die-wahlen-in-der-schuelerschaft-schuelwahlo-vom-29-juni-2022-182367?template=20_gp_ifg_meta_detail_d",
         "type": "Wahlordnung für die Wahlen in der Schülerschaft ",
         "title": "SchülWahlO",
-        "retrieval_strategy": "soup",
+        "strategy": "soup",
         "area_class": "main_article gesetz"
       }
     ]
@@ -139,14 +141,14 @@
       {
         "permalink": "https://www.landesrecht-hamburg.de/bsha/document/jlr-SchulGHArahmen",
         "type": "Schulgesetz",
-        "retrieval_strategy": "selenium",
+        "strategy": "selenium",
         "title": "HmbSG"
       },
       {
         "permalink": "https://www.landesrecht-hamburg.de/bsha/document/jlr-SchKammerWOHArahmen",
         "type": "Wahlordnung für die Schülerkammer",
         "title": "SchKammerWO HA",
-        "retrieval_strategy": "selenium"
+        "strategy": "selenium"
       }
     ]
   },
@@ -156,26 +158,26 @@
       {
         "permalink": "https://www.rv.hessenrecht.hessen.de/bshe/document/jlr-SchulGHE2022pP121",
         "type": "Schulgesetz",
-        "retrieval_strategy": "selenium",
+        "strategy": "selenium",
         "title": "HSchG"
       },
       {
         "permalink": "https://www.rv.hessenrecht.hessen.de/perma?j=KonfO_HE_!_4",
         "type": "Konferenzordnung",
-        "retrieval_strategy": "selenium",
+        "strategy": "selenium",
         "title": "KonfO HE"
       },
       {
         "permalink": "https://www.rv.hessenrecht.hessen.de/perma?j=Sch%2FStudVtrV_HE",
         "type": "Verordnung über die Schülervertretungen und die Studierendenvertretungen",
         "title": "Sch/StudVtrV HE",
-        "retrieval_strategy": "selenium"
+        "strategy": "selenium"
       },
       {
         "permalink": "https://www.rv.hessenrecht.hessen.de/perma?j=SchulVerhGV_HE",
         "type": "Verordnung zur Gestaltung des Schulverhältnisses",
         "title": "VOGSV",
-        "retrieval_strategy": "selenium"
+        "strategy": "selenium"
       }
     ]
   },
@@ -186,19 +188,19 @@
         "permalink": "https://voris.wolterskluwer-online.de/browse/document/cite/cf48fc0f-9ade-38f9-be4f-59b3126b3eb3",
         "type": "Schulgesetz",
         "title": "NSchG",
-        "retrieval_strategy": "selenium"
+        "strategy": "selenium"
       },
       {
         "permalink": "https://voris.wolterskluwer-online.de/browse/document/cite/4a966562-2d77-353a-b848-62d59e9c9583",
         "title": "SchülerWO",
         "type": "Schülerwahlordnung",
-        "retrieval_strategy": "selenium"
+        "strategy": "selenium"
       },
       {
         "permalink": "https://voris.wolterskluwer-online.de/browse/document/cite/767056c6-13fc-390c-ab99-b331dd513733",
         "title": "SV-Berater-RdErl",
         "type": "Runderlass",
-        "retrieval_strategy": "selenium"
+        "strategy": "selenium"
       }
     ]
   },
@@ -209,28 +211,28 @@
         "permalink": "https://recht.nrw.de/lmi/owa/br_text_anzeigen?v_id=10000000000000000524",
         "type": "Schulgesetz",
         "title": "NRW - SchulG",
-        "retrieval_strategy": "soup",
+        "strategy": "soup",
         "area_class": "standard"
       },
       {
         "permalink": "https://bass.schule.nrw/834.htm",
         "type": "Runderlass",
         "title": "Die Mitwirkung der Schülervertretung in der Schule (SV-Erlass)",
-        "retrieval_strategy": "soup",
+        "strategy": "soup",
         "area_class": "content-area"
       },
       {
         "permalink": "https://bass.schule.nrw/6230.htm",
         "title": "Empfehlung einer Geschäftsordnung für die Schulmitwirkungsgremien",
         "type": "Runderlass",
-        "retrieval_strategy": "soup",
+        "strategy": "soup",
         "area_class": "content-area"
       },
       {
         "permalink": "https://bass.schule.nrw/6229.htm",
         "title": "Empfehlung einer Wahlordnung für die Schulmitwirkungsgremien",
         "type": "Runderlass",
-        "retrieval_strategy": "soup",
+        "strategy": "soup",
         "area_class": "content-area"
       }
     ]
@@ -242,17 +244,16 @@
         "permalink": "https://landesrecht.rlp.de/bsrp/document/jlr-SchulGRP2004rahmen",
         "type": "Schulgesetz",
         "title": "SchulG",
-        "retrieval_strategy": "selenium"
+        "strategy": "selenium"
       },
       {
         "permalink": "http://landesrecht.rlp.de/jportal/?quelle=jlink&docid=VVRP-VVRP000003549&psml=bsrp.psml",
         "type": "Verwaltungsvorschrift",
         "title": "Aufgaben, Wahl und Verfahrensweise der Vertretungen für Schülerinnen und Schüler",
-        "retrieval_strategy": "wait_jportal_load"
+        "strategy": "wait_jportal_load"
       }
     ]
   },
-   
   {
     "jurisdiction": "DE_SL",
     "resources": [
@@ -260,17 +261,16 @@
         "permalink": "https://recht.saarland.de/bssl/document/jlr-SchulOGSLrahmen",
         "type": "Schulordnungsgesetz",
         "title": "SchoG",
-        "retrieval_strategy": "selenium"
+        "strategy": "selenium"
       },
       {
         "permalink": "https://recht.saarland.de/bssl/document/jlr-SchulMGSLrahmen",
         "title": "SchumG",
         "type": "Schulmitbestimmungsgesetz",
-        "retrieval_strategy": "selenium"
+        "strategy": "selenium"
       }
     ]
   },
-
   {
     "jurisdiction": "DE_SH",
     "resources": [
@@ -278,7 +278,7 @@
         "permalink": "https://www.gesetze-rechtsprechung.sh.juris.de/perma?j=SchulG_SH_!_81",
         "type": "Schulgesetz",
         "title": "SchulG",
-         "retrieval_strategy": "selenium"
+        "strategy": "selenium"
       }
     ]
   }
