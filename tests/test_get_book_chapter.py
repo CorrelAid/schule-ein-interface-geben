@@ -1,6 +1,6 @@
 
 import requests
-from lib.rendered_scraping import extract_book_chapter_row
+from lib.post_parsing import extract_book_chapter_row
 
 def get_result(post_id):
     response = requests.get(f"https://meinsvwissen.de/wp-json/wp/v2/posts/{post_id}")

@@ -4,6 +4,7 @@ from rich.progress import Progress, TimeRemainingColumn, BarColumn, TextColumn
 import concurrent.futures
 import polars as pl
 from selenium import webdriver
+import json
 from selenium.webdriver.common.by import By
 from bs4 import BeautifulSoup
 import time
@@ -12,13 +13,15 @@ from lib.llm_parsers import make_termparser
 import random
 from lib.config import valid_jurisdictions
 import dspy
+from lib.models import SCCSchema
 
-def get_link_info(url, max_retries=3, retry_delay=3):
+
+def download_file_binary(url, max_retries=5, retry_delay=3):
     jitter = random.uniform(2, 4)
     time.sleep(jitter)
     for attempt in range(max_retries):
         try:
-            response = requests.head(url, allow_redirects=True, timeout=5)
+            response = requests.get(url, allow_redirects=True, timeout=60, stream=True)
             if response.status_code == 200:
                 content_type = response.headers.get("Content-Type", "")
                 if content_type:
@@ -26,15 +29,15 @@ def get_link_info(url, max_retries=3, retry_delay=3):
                     file_type = content_type.split("/")[-1]
                 else:
                     file_type = "unknown"
-                return True, file_type
+                return True, file_type, response.content
             else:
-                return False, "unknown"
-        except requests.RequestException as e:
+                return False, "unknown", None
+        except requests.RequestException:
             if attempt < max_retries - 1:
                 time.sleep(retry_delay * (attempt + 1))
                 continue
             else:
-                return False, "unknown"
+                return False, "unknown", None
 
 
 def process_link(link, root_node):
@@ -44,7 +47,7 @@ def process_link(link, root_node):
     category_title = find_node_by_id(root_node, str(category_id)).name
     download_link = f"https://meinsvwissen.de/download/{category_id}/so-weird-that/{data_id}/this-does-not-matter".lower()
 
-    is_valid, file_type = get_link_info(download_link)
+    is_valid, file_type, file_binary = download_file_binary(download_link)
 
     if is_valid:
         return {
@@ -54,6 +57,7 @@ def process_link(link, root_node):
             "category_title": category_title,
             "download_link": download_link,
             "file_type": file_type,
+            "file_binary": file_binary,
         }
     else:
         raise Exception(f"Invalid link: {download_link}")
@@ -153,7 +157,9 @@ def process_id(id, index, total, max_retries=5):
             except Exception as e:
                 retry_count += 1
                 if retry_count < max_retries:
-                    print(f"{id} - Retrying... (Attempt {retry_count + 1}/{max_retries})")
+                    print(
+                        f"{id} - Retrying... (Attempt {retry_count + 1}/{max_retries})"
+                    )
                     time.sleep(2.5**retry_count + random.uniform(4, 6))
                 else:
                     raise Exception(f"Max retries ({max_retries}) reached for ID {id}.")
@@ -183,7 +189,8 @@ def get_file_links(category_ids, max_workers=4):
         with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
             future_to_id = {
                 executor.submit(process_id, id, index, len(category_ids)): id
-                for index, id in enumerate(category_ids) if id  
+                for index, id in enumerate(category_ids)
+                if id
             }
 
             for future in concurrent.futures.as_completed(future_to_id):
@@ -248,3 +255,46 @@ def get_terms(smoke_test, smoke_test_n, max_workers, lm):
                 progress.update(task, advance=1)
 
     return pl.DataFrame(results)
+
+
+def scrape_scc():
+    """
+    Scraping Student council committees
+    """
+    schema = SCCSchema.to_pydantic_model()
+    url = "https://www.bildungsserver.de/schule/gremien-der-schuelervertretung-sm-12681-de.html"
+    res = requests.get(url)
+    res.raise_for_status()
+    soup = BeautifulSoup(res.content, "html.parser")
+    cards = soup.find_all("section", class_="a5-section-linklist")[1:]
+    objs = []
+    for card in cards:
+        name = card.find("h4").text
+        website = card.find("a", class_="a5-theme-linklist-item-headline-link")["href"]
+        jurisdiction = [
+            key for key, value in valid_jurisdictions.items() if value == name
+        ][0]
+        detail_link = card.find("a", title="Mehr Info")["href"]
+        res = requests.get("https://www.bildungsserver.de" + detail_link)
+        res.raise_for_status()
+        soup = BeautifulSoup(res.content, "html.parser")
+        description = soup.find("div", class_="ym-gbox-left").find_all("p")[3].text
+        obj = {
+            "name": name,
+            "website": website,
+            "jurisdiction": jurisdiction,
+            "description": description,
+        }
+        validated = schema.model_validate(obj).model_dump()
+        objs.append(validated)
+
+    # manually add Saarland (missing from website) but hoping for addition in the future
+    if len(objs) == 16:
+        with open("static_data/saarland_scc.json") as f:
+            obj = json.loads(f.read())
+        validated = schema.model_validate(obj).model_dump()
+        objs.append(validated)
+
+    assert len(objs) == 17
+
+    return pl.from_dicts(objs)

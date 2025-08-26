@@ -1,4 +1,3 @@
-from xmlrpc.client import FastMarshaller, FastUnmarshaller
 from anytree import NodeMixin
 from lib.config import valid_jurisdictions, valid_school_types
 import polars as pl
@@ -36,6 +35,7 @@ class DownloadSchema(BaseSchema):
         {"name": "category_title", "type": pl.Utf8, "nullable": False},
         {"name": "download_link", "type": pl.Utf8, "nullable": False},
         {"name": "file_type", "type": pl.Utf8, "nullable": False},
+        {"name": "file_binary", "type": pl.Binary, "nullable": False},
     ]
 
 
@@ -161,6 +161,19 @@ class LegalResourceSchema(BaseSchema):
         {"name": "title", "type": pl.Utf8, "nullable": False},
         {"name": "html", "type": pl.Utf8, "nullable": False},
         {
+            "name": "jurisdiction",
+            "type": pl.Enum(list(valid_jurisdictions.keys())),
+            "nullable": False,
+        },
+    ]
+
+class SCCSchema(BaseSchema):
+    #Student council committees/Gremien der Schüler*innenvertretung
+    fields = [
+        {"name": "name", "type": pl.Utf8, "nullable": False},
+        {"name": "description", "type": pl.Utf8, "nullable": False},
+        {"name": "website", "type": pl.Utf8, "nullable": False},
+                 {
             "name": "jurisdiction",
             "type": pl.Enum(list(valid_jurisdictions.keys())),
             "nullable": False,

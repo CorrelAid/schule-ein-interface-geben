@@ -3,7 +3,7 @@ import logging
 import sys
 import requests
 from rich.logging import RichHandler
-from lib.rendered_scraping import extract_related_posts_row, process_post_link
+from lib.post_parsing import extract_related_posts_row, process_post_link
 
 logging.basicConfig(
     level=logging.DEBUG,

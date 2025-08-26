@@ -12,14 +12,14 @@ schema = PublicationSchema.to_pydantic_model()
 
 
 def get_zotero_api_data(
-    api_url: str = "https://api.zotero.org/groups/6066861/items", sample=False
+    api_url: str = "https://api.zotero.org/groups/6066861/items", sample_k=-1
 ) -> List[Dict[str, Any]]:
     params = {"format": "json", "include": "csljson", "limit": 100}
     resp = requests.get(api_url, params=params)
     resp.raise_for_status()
     jason = resp.json()
-    if sample:
-        jason = random.choices(jason, k=5)
+    if sample_k != -1:
+        jason = random.choices(jason, k=sample_k)
     res = []
     for elem in jason:
         time.sleep(random.uniform(0.25, 0.5))

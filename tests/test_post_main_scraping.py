@@ -1,7 +1,7 @@
 import logging
 import sys
 import requests
-from lib.rendered_scraping import process_posts_row
+from lib.post_parsing import process_posts_row
 from rich.logging import RichHandler
 
 logging.basicConfig(

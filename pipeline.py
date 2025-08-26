@@ -13,11 +13,12 @@ from anytree import RenderTree
 from rich.logging import RichHandler
 import logging
 from lib.tree_functions import build_category_tree, get_node_lst, export_tree_to_json
-from lib.custom_scraping_sources import (
+from lib.scraping import (
     get_download_soup,
     get_file_links,
     extract_download_info,
     get_terms,
+    scrape_scc
 )
 from lib.transform import transform_api_results
 from lib.dlt_defs import api_source
@@ -29,8 +30,10 @@ from lib.models import (
     SectionSchema,
     PublicationSchema,
     LegalResourceSchema,
+    SCCSchema
+
 )
-from lib.rendered_scraping import (
+from lib.post_parsing import (
     process_posts_row,
     extract_further_download_category_ids,
     extract_book_chapter,
@@ -52,7 +55,7 @@ logging.basicConfig(
 
 log = logging.getLogger("rich")
 
-SMOKE_TEST_N = 5
+SMOKE_TEST_N = 3
 MAX_WORKERS = 3
 S3_BUCKET_NAME = "cdl-segg"
 
@@ -111,6 +114,7 @@ pipeline = dlt.pipeline(
 )
 
 table_names = [
+    "student_council_committees"
     "legal_resources",
     "publications",
     "posts",
@@ -118,11 +122,25 @@ table_names = [
     "glossary_terms",
     "downloads",
 ]
-
 #######################################
 #######################################
 
 step = 1
+log.info(
+    f"[bold blue]🏭 Pipeline Stage {step}/{len(table_names)}:  Get Student council committee info",
+    extra={"markup": True},
+)
+
+scc_df = scrape_scc()
+
+log.info(f"We got {len(scc_df)} legal councils")
+
+step += 1
+
+
+#######################################
+#######################################
+
 log.info(
     f"[bold blue]🏭 Pipeline Stage {step}/{len(table_names)}: Get legal_resources from jurisdiction as html",
     extra={"markup": True},
@@ -135,7 +153,7 @@ with open(path) as f:
 
 debug_legal = False
 if args.smoke_test:
-    cfg = random.choices(cfg, k=4)
+    cfg = random.choices(cfg, k=SMOKE_TEST_N)
     debug_legal = True
 
 legal_df = get_legal_resources(cfg, debug=debug_legal, logger=log)
@@ -150,11 +168,11 @@ log.info(
     f"[bold blue]🏭 Pipeline Stage {step}/{len(table_names)}: Getting publications from zotero",
     extra={"markup": True},
 )
-sample = False
+sample_k = -1
 if args.smoke_test:
-    sample = True
+     sample_k = SMOKE_TEST_N
 
-zotero_api_data = get_zotero_api_data(sample=sample)
+zotero_api_data = get_zotero_api_data(sample_k=SMOKE_TEST_N)
 
 zotero_df = convert_zotero_api_results(zotero_api_data,  logger=log)
 
@@ -301,14 +319,15 @@ log.info(
 )
 
 
-dfs = [legal_df, zotero_df, df_posts_extended, section_df, term_df, downloads_df]
+dfs = [scc_df, legal_df, zotero_df, df_posts_extended, section_df, term_df, downloads_df]
 schemas = [
+    SCCSchema.to_pyarrow_schema(),
     LegalResourceSchema.to_pyarrow_schema(),
     PublicationSchema.to_pyarrow_schema(),
     PostSchema.to_pyarrow_schema(),
     SectionSchema.to_pyarrow_schema(),
     TermSchema.to_pyarrow_schema(),
-    DownloadSchema.to_pyarrow_schema(),
+    DownloadSchema.to_pyarrow_schema()
 ]
 
 for idx, table_name in enumerate(table_names):

@@ -1,4 +1,4 @@
-from lib.rendered_scraping import get_transcript_url
+from lib.post_parsing import get_transcript_url
 
 def test_get_prezi_transcript_url():
     media_url = "https://meinsvwissen.de/wp-content/uploads/2025/08/Klimaschutz-1.jpg"

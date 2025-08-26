@@ -1,4 +1,4 @@
-from lib.custom_scraping_sources import get_terms
+from lib.scraping import get_terms
 import dspy
 import os
 from lib.config import llm_base_url, llm_model

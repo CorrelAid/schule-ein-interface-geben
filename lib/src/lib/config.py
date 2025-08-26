@@ -8,7 +8,7 @@ download_subpage = "/sv-archiv"
 
 # ISO 3166-2 format for German states: https://www.iso.org/obp/ui/#iso:code:3166:DE
 valid_jurisdictions = {
-    "DE": "Germany",
+    "DE": "Bundesweit",
     "DE_BW": "Baden-Württemberg",
     "DE_BY": "Bayern",
     "DE_BE": "Berlin",
