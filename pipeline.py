@@ -18,7 +18,8 @@ from lib.scraping import (
     get_file_links,
     extract_download_info,
     get_terms,
-    scrape_scc
+    scrape_scc,
+    scrape_svtipps
 )
 from lib.transform import transform_api_results
 from lib.dlt_defs import api_source
@@ -30,8 +31,8 @@ from lib.models import (
     SectionSchema,
     PublicationSchema,
     LegalResourceSchema,
-    SCCSchema
-
+    SCCSchema,
+    SVTippsSchema
 )
 from lib.post_parsing import (
     process_posts_row,
@@ -114,7 +115,8 @@ pipeline = dlt.pipeline(
 )
 
 table_names = [
-    "student_council_committees"
+    "student_council_committees",
+    "svtipps",
     "legal_resources",
     "publications",
     "posts",
@@ -133,10 +135,27 @@ log.info(
 
 scc_df = scrape_scc()
 
-log.info(f"We got {len(scc_df)} legal councils")
+log.info(f"We got {len(scc_df)} councils")
 
 step += 1
 
+#######################################
+#######################################
+
+log.info(
+    f"[bold blue]🏭 Pipeline Stage {step}/{len(table_names)}: Get SV tipps",
+    extra={"markup": True},
+)
+
+sample_k = -1
+if args.smoke_test:
+    sample_k = SMOKE_TEST_N
+
+svtipps_df = scrape_svtipps(sample_k=sample_k)
+
+log.info(f"We got {len(svtipps_df)} SV tipps")
+
+step += 1
 
 #######################################
 #######################################
@@ -319,9 +338,10 @@ log.info(
 )
 
 
-dfs = [scc_df, legal_df, zotero_df, df_posts_extended, section_df, term_df, downloads_df]
+dfs = [scc_df, svtipps_df, legal_df, zotero_df, df_posts_extended, section_df, term_df, downloads_df]
 schemas = [
     SCCSchema.to_pyarrow_schema(),
+    SVTippsSchema.to_pyarrow_schema(),
     LegalResourceSchema.to_pyarrow_schema(),
     PublicationSchema.to_pyarrow_schema(),
     PostSchema.to_pyarrow_schema(),
@@ -369,3 +389,4 @@ log.info(f"Removed local file {tree_json_path}")
 
 
 log.info("[bold blue]🎉🎉🎉 We are done 🎉🎉🎉", extra={"markup": True})
+

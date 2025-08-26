@@ -5,7 +5,7 @@
 - Main pipeline script: `pipeline.py`. Stages are described in the log messages.
 - Also see `/tests`, e.g. `tests/test_post_main_scraping.py` to get a feel for the data and how it is structured.
 
-## Data Sources
+## Misc. info about data Sources
 
 All sources have a schema in `lib/src/lib/models.py`
 
@@ -20,17 +20,3 @@ All sources have a schema in `lib/src/lib/models.py`
 - The “More Info” section contains links to other posts and other chapters in the SV archive.
 - The main section can include various media (see `lib/src/lib/models.py` and `exploration.ipynb` for an overview)
 
-### Download Section / SV Archive
-
-- “Collected examples and templates from other schools.”
-- Contains documents and videos.
-- Documents may include excerpts from your book.
-
-### Manuals
-
-- Contains complete works (i.e., no excerpts from other works).
-- Includes books published by you and others, as well as unpublished brochures.
-
-### Glossary
-
-- Definitions of terms and abbreviations, sometimes differentiated by federal state.

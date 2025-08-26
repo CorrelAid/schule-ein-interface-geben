@@ -13,7 +13,8 @@ from lib.llm_parsers import make_termparser
 import random
 from lib.config import valid_jurisdictions
 import dspy
-from lib.models import SCCSchema
+from lib.models import SCCSchema, SVTippsSchema
+from html_sanitizer import Sanitizer
 
 
 def download_file_binary(url, max_retries=5, retry_delay=3):
@@ -256,7 +257,6 @@ def get_terms(smoke_test, smoke_test_n, max_workers, lm):
 
     return pl.DataFrame(results)
 
-
 def scrape_scc():
     """
     Scraping Student council committees
@@ -297,4 +297,108 @@ def scrape_scc():
 
     assert len(objs) == 17
 
+    return pl.from_dicts(objs)
+
+def scrape_svtipps(sample_k=-1):
+    schema = SVTippsSchema.to_pydantic_model()
+    sanitizer = Sanitizer()
+    base_url = "https://svtipps.de"
+    
+    response = requests.get(base_url)
+    response.raise_for_status()
+    soup = BeautifulSoup(response.content, "html.parser")
+    
+    nav_tag = soup.find("nav").find("ul")
+    if not nav_tag:
+        raise Exception("No nav tag found on the main page")
+    
+    nav_links = nav_tag.find_all("a", href=True)
+    
+    url_hierarchy = {}
+    current_category = None
+    current_subcategory = None
+    
+    for link in nav_links:
+        href = link["href"]
+        text = link.get_text(strip=True)
+        if text == "Downloads":
+            continue
+        data_level = link["data-level"]
+        
+        if href.startswith("/") and href != "/":
+            full_url = base_url + href
+        elif href.startswith(base_url) and href != base_url and href != base_url + "/":
+            full_url = href
+        else:
+            raise RuntimeError("Invalid URL ", full_url)
+        
+        if data_level == "1":
+            current_category = text
+            current_subcategory = None
+            url_hierarchy[full_url] = {
+                "category": text,
+                "subcategory": None
+            }
+        elif data_level == "2" and current_category:
+            current_subcategory = text
+            url_hierarchy[full_url] = {
+                "category": current_category,
+                "subcategory": None 
+            }
+        elif data_level == "3" and current_category and current_subcategory:
+            url_hierarchy[full_url] = {
+                "category": current_category,
+                "subcategory": current_subcategory
+            }
+    
+    urls_to_scrape = list(url_hierarchy.keys())
+    
+    if sample_k > 0:
+        urls_to_scrape = list(urls_to_scrape)[:sample_k]
+    
+    objs = []
+    
+    with Progress(
+        TextColumn("[progress.description]{task.description}"),
+        BarColumn(),
+        TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+        TimeRemainingColumn(),
+    ) as progress:
+        task = progress.add_task("Scraping SVTipps pages...", total=len(urls_to_scrape))
+        
+        for url in urls_to_scrape:
+            time.sleep(random.uniform(0.5, 1.5))
+            
+            response = requests.get(url, timeout=30)
+            response.raise_for_status()
+            page_soup = BeautifulSoup(response.content, "html.parser")
+            
+            content_div = page_soup.find("div", {"id": "content"})
+            if not content_div:
+                print(f"No content div found for {url}")
+                progress.update(task, advance=1)
+                raise RuntimeError("Invalid Page?!: ", url)
+            
+            title_tag = page_soup.find("title")
+            title = title_tag.get_text(strip=True) if title_tag else url.split("/")[-2] or "Unknown"
+            
+            hierarchy_info = url_hierarchy.get(url, {"category": None, "subcategory": None})
+            category = hierarchy_info["category"]
+            subcategory = hierarchy_info["subcategory"]
+            
+            html_content = sanitizer.sanitize(str(content_div))
+            
+            obj = {
+                "title": title,
+                "url": url,
+                "html_content": html_content,
+                "category": category,
+                "subcategory": subcategory,
+            }
+            
+            validated = schema.model_validate(obj).model_dump()
+            objs.append(validated)
+        
+            progress.update(task, advance=1)
+    
     return pl.from_dicts(objs)

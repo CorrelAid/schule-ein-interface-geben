@@ -3,7 +3,7 @@ from lib.config import valid_jurisdictions, valid_school_types
 import polars as pl
 from lib import BaseSchema
 
-
+# The Downloads from https://meinsvwissen.de/sv-archiv/ as a Tree Structure
 class DownloadCategoryNode(NodeMixin):
     def __init__(
         self,
@@ -26,7 +26,7 @@ class DownloadCategoryNode(NodeMixin):
     def __repr__(self):
         return f"DownloadCategoryNode(name='{self.name}', id={self.data_id})"
 
-
+# Various files from https://meinsvwissen.de/sv-archiv/
 class DownloadSchema(BaseSchema):
     fields = [
         {"name": "data_id", "type": pl.Int64, "nullable": False},
@@ -39,43 +39,9 @@ class DownloadSchema(BaseSchema):
     ]
 
 
-class SectionSchema(BaseSchema):
-    fields = [
-        {
-            "name": "post_id",
-            "type": pl.Int64,
-            "nullable": False,
-        },  # foreign key to posts (id)
-        {"name": "title", "type": pl.Utf8, "nullable": True},
-        {"name": "text", "type": pl.Utf8, "nullable": True},
-        {
-            "name": "type",
-            "type": pl.Enum(
-                [
-                    "plain_text",
-                    "accordion_section_text",
-                    "accordion_section_prezi",
-                    "accordion_section_youtube",
-                    "accordion_section_h5p",
-                    # "accordion_section_link",
-                    "accordion_section_image",
-                    "accordion_section_quiz",
-                    "quiz",
-                    "prezi",
-                    "youtube",
-                    "h5p",
-                    "flipcard",
-                    "image",
-                    "video",
-                ]
-            ),
-            "nullable": False,
-        },
-        {"name": "external_link", "type": pl.Utf8, "nullable": True},
-        {"name": "transcript_url", "type": pl.Utf8, "nullable": True},
-    ]
 
 
+# "Wissensmodule"/"Wissenskatalog"/Posts from https://meinsvwissen.de/wissen/
 class PostSchema(BaseSchema):
     fields = [
         {"name": "id", "type": pl.Int64, "nullable": False},
@@ -118,7 +84,43 @@ class PostSchema(BaseSchema):
         },  # linked related posts from the further links or main area
     ]
 
+class SectionSchema(BaseSchema):
+    fields = [
+        {
+            "name": "post_id",
+            "type": pl.Int64,
+            "nullable": False,
+        },  # foreign key to posts (id)
+        {"name": "title", "type": pl.Utf8, "nullable": True},
+        {"name": "text", "type": pl.Utf8, "nullable": True},
+        {
+            "name": "type",
+            "type": pl.Enum(
+                [
+                    "plain_text",
+                    "accordion_section_text",
+                    "accordion_section_prezi",
+                    "accordion_section_youtube",
+                    "accordion_section_h5p",
+                    # "accordion_section_link",
+                    "accordion_section_image",
+                    "accordion_section_quiz",
+                    "quiz",
+                    "prezi",
+                    "youtube",
+                    "h5p",
+                    "flipcard",
+                    "image",
+                    "video",
+                ]
+            ),
+            "nullable": False,
+        },
+        {"name": "external_link", "type": pl.Utf8, "nullable": True},
+        {"name": "transcript_url", "type": pl.Utf8, "nullable": True},
+    ]
 
+# Sub page of https://meinsvwissen.de/glossar-schuelervertretung/
 class TermSchema(BaseSchema):
     fields = [
         {"name": "term", "type": pl.Utf8, "nullable": False},
@@ -129,7 +131,7 @@ class TermSchema(BaseSchema):
         ],
     ]
 
-
+# Publications from the Zotero group library: https://www.zotero.org/groups/6066861/segg/library
 class PublicationSchema(BaseSchema):
     fields = [
         {"name": "key", "type": pl.Utf8, "nullable": False},
@@ -154,6 +156,7 @@ class PublicationSchema(BaseSchema):
     ]
 
 
+# Attempt to get the latest relevant legal sources for all german states 
 class LegalResourceSchema(BaseSchema):
     fields = [
         {"name": "url", "type": pl.Utf8, "nullable": False},
@@ -167,6 +170,7 @@ class LegalResourceSchema(BaseSchema):
         },
     ]
 
+# https://www.bildungsserver.de/schule/gremien-der-schuelervertretung-sm-12681-de.html
 class SCCSchema(BaseSchema):
     #Student council committees/Gremien der Schüler*innenvertretung
     fields = [
@@ -178,4 +182,14 @@ class SCCSchema(BaseSchema):
             "type": pl.Enum(list(valid_jurisdictions.keys())),
             "nullable": False,
         },
+    ]
+
+# https://svtipps.de
+class SVTippsSchema(BaseSchema):
+    fields = [
+        {"name": "title", "type": pl.Utf8, "nullable": False},
+        {"name": "url", "type": pl.Utf8, "nullable": False},
+        {"name": "html_content", "type": pl.Utf8, "nullable": False},
+        {"name": "category", "type": pl.Utf8, "nullable": True},  # Top level category (e.g. "Struktur", "Management")
+        {"name": "subcategory", "type": pl.Utf8, "nullable": True},  # Subcategory if applicable
     ]
