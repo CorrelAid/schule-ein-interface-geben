@@ -42,9 +42,13 @@ def scrape_legal_page(url, timeout=35):
             "or contains(normalize-space(), 'Aktuelle Gesamtausgabe')]"
         )
 
-        button = WebDriverWait(driver, timeout).until(
-            EC.element_to_be_clickable((By.XPATH, button_xpath))
-        )
+        try:
+            button = WebDriverWait(driver, timeout).until(
+                EC.element_to_be_clickable((By.XPATH, button_xpath))
+            )
+        except Exception as e:
+            driver.quit()
+            raise RuntimeError(f"Failed to find button for URL {url}: {e}")
 
         button.click()
         time.sleep(5)
@@ -58,9 +62,13 @@ def scrape_legal_page(url, timeout=35):
         doc_body = soup.find(class_=content_class)
     elif version == "wolterskluwer":
         button_xpath = "//a[contains(text(), 'Gesamte Quelle anzeigen')]"
-        button = WebDriverWait(driver, timeout).until(
-            EC.element_to_be_clickable((By.XPATH, button_xpath))
-        )
+        try:
+            button = WebDriverWait(driver, timeout).until(
+                EC.element_to_be_clickable((By.XPATH, button_xpath))
+            )
+        except Exception as e:
+            driver.quit()
+            raise RuntimeError(f"Failed to find button for URL {url}: {e}")
 
         button.click()
         time.sleep(5)
