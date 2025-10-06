@@ -46,7 +46,7 @@ def process_link(link, root_node):
     data_id = int(link.get("data-id", 0))
     title = link.get("title", "")
     category_title = find_node_by_id(root_node, str(category_id)).name
-    download_link = f"https://meinsvwissen.de/download/{category_id}/so-weird-that/{data_id}/this-does-not-matter".lower()
+    download_link = f"https://meinsvwissen.de/download/{category_id}/cat-id/{data_id}/data-id".lower()
 
     is_valid, file_type, file_binary = download_file_binary(download_link)
 

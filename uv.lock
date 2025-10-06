@@ -2614,12 +2614,6 @@ wheels = [
 ]
 
 [[package]]
-name = "pygraphviz"
-version = "1.14"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/66/ca/823d5c74a73d6b8b08e1f5aea12468ef334f0732c65cbb18df2a7f285c87/pygraphviz-1.14.tar.gz", hash = "sha256:c10df02377f4e39b00ae17c862f4ee7e5767317f1c6b2dfd04cea6acc7fc2bea", size = 106003 }
-
-[[package]]
 name = "pyparsing"
 version = "3.2.3"
 source = { registry = "https://pypi.org/simple" }
@@ -3010,7 +3004,6 @@ dependencies = [
     { name = "polars" },
     { name = "poldantic" },
     { name = "pydantic" },
-    { name = "pygraphviz" },
     { name = "pytest" },
     { name = "python-dotenv" },
     { name = "requests" },
@@ -3040,7 +3033,6 @@ requires-dist = [
     { name = "polars", specifier = ">=1.31.0" },
     { name = "poldantic", specifier = ">=0.2.0" },
     { name = "pydantic", specifier = ">=2.11.7" },
-    { name = "pygraphviz", specifier = ">=1.14" },
     { name = "pytest", specifier = ">=8.4.1" },
     { name = "python-dotenv", specifier = ">=1.1.1" },
     { name = "requests", specifier = ">=2.32.4" },

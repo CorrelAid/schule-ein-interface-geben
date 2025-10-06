@@ -27,7 +27,6 @@ dependencies = [
     "poldantic>=0.2.0",
     "networkx>=3.5",
     "fastexcel>=0.14.0",
-    "pygraphviz>=1.14",
     "html-sanitizer>=2.6.0",
     "webdriver-manager>=4.0.2",
     "certifi>=2025.7.14",
