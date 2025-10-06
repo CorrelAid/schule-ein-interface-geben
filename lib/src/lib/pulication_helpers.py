@@ -105,6 +105,12 @@ def convert_zotero_api_results(data, logger) -> pl.DataFrame:
         except requests.exceptions.ReadTimeout:
             logger.warning(f"Timeout for {rec['url']}")
             continue
+        except requests.exceptions.HTTPError as e:
+            logger.warning(f"HTTP error for {rec['url']}: {e}")
+            continue
+        except requests.exceptions.ConnectionError as e:
+            logger.warning(f"Connection error for {rec['url']}: {e}")
+            continue
 
         rec["pdf_binary"] = binary
 

@@ -149,7 +149,7 @@ def process_id(id, index, total, max_retries=5):
                 jitter = random.uniform(3, 5)
                 time.sleep(jitter)
                 driver.get(f"https://meinsvwissen.de/sv-archiv/#36-{id}")
-                time.sleep(5)
+                time.sleep(10)  # Increased wait time for folder expansion
 
                 container = driver.find_element(By.ID, "wpfd-elementor-category")
                 html = container.get_attribute("innerHTML")
