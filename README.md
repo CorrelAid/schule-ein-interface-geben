@@ -33,4 +33,4 @@ WP_PW=<secret>
 S3_ENDPOINT=<secret>
 S3_ACCESS_KEY_ID=<secret>
 S3_SECRET_ACCESS_KEY=<secret>
-``
+```
