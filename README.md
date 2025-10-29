@@ -20,3 +20,16 @@ All sources have a schema in `lib/src/lib/models.py`
 - The “More Info” section contains links to other posts and other chapters in the SV archive.
 - The main section can include various media (see `lib/src/lib/models.py` and `exploration.ipynb` for an overview)
 
+## Setup
+To run pipeline.py, you need to set the following environment variables in a .env
+
+```bash
+OR_KEY=<secret>
+
+WP_USER=<secret>
+WP_PW=<secret>
+
+S3_ENDPOINT=<secret>
+S3_ACCESS_KEY_ID=<secret>
+S3_SECRET_ACCESS_KEY=<secret>
+``
