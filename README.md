@@ -21,7 +21,8 @@ All sources have a schema in `lib/src/lib/models.py`
 - The main section can include various media (see `lib/src/lib/models.py` and `exploration.ipynb` for an overview)
 
 ## Setup
-To run pipeline.py, you need to set the following environment variables in a .env
+- Install uv
+- to run pipeline.py, you need to set the following environment variables in a .env
 
 ```bash
 OR_KEY=<secret>
