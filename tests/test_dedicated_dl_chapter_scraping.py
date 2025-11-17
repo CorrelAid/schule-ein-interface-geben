@@ -43,6 +43,14 @@ def test_in_main_and_dedicated():
     assert result == post_gt
 
 
+def test_memory_spiel_konferenzen():
+    post_id = 8952  # https://meinsvwissen.de/memory-spiel-konferenzen-sachsen-anhalt/
+    post_gt = 41
+    result = get_result(post_id)
+    print(f"Post {post_id}: Expected {post_gt}, Got {result}")
+    assert result == post_gt
+
+
 def test_download_file_binary():
     url = "https://httpbin.org/bytes/1024"
     success, file_type, content = download_file_binary(url)

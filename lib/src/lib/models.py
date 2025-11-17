@@ -36,6 +36,11 @@ class DownloadSchema(BaseSchema):
         {"name": "download_link", "type": pl.Utf8, "nullable": False},
         {"name": "file_type", "type": pl.Utf8, "nullable": False},
         {"name": "file_binary", "type": pl.Binary, "nullable": False},
+        {
+            "name": "associated_posts",
+            "type": pl.List(pl.Int64),
+            "nullable": True,
+        },  # all posts that have this download in their category tree
     ]
 
 
@@ -82,6 +87,11 @@ class PostSchema(BaseSchema):
             "type": pl.List(pl.Int64),
             "nullable": True,
         },  # linked related posts from the further links or main area
+        {
+            "name": "associated_downloads",
+            "type": pl.List(pl.Int64),
+            "nullable": True,
+        },  # all downloads that belong to this post's category tree
     ]
 
 class SectionSchema(BaseSchema):

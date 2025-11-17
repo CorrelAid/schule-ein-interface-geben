@@ -246,7 +246,7 @@ def extract_related_posts(df, logger, max_workers):
 
 def extract_dedicated_download_chapter_id_row(row, root_node):
     soup = BeautifulSoup(row["content"], "html.parser")
-    downloads = soup.find_all(class_="wpfd-tree-categories-files")
+    downloads = soup.find_all(class_="elementor-widget-wpfd_choose_category")
 
     if len(downloads) == 0:
         return None
@@ -254,24 +254,24 @@ def extract_dedicated_download_chapter_id_row(row, root_node):
         # if there seem to be multiple download sections, only consider the first one
         downloads = [downloads[0]]
 
-    firsta = downloads[0].find(class_="wpfd-file-link")
+    firsta = downloads[0].find(class_="wpfd-content-tree")
     # if there are file links displayed already, get the parent download category
     if firsta:
-        if firsta.has_attr("data-category_id"):
-            category_id = firsta["data-category_id"]
+        if firsta.has_attr("data-category"):
+            category_id = firsta["data-category"]
             return int(category_id)
         else:
-            raise ValueError("No category_id found")
+            raise ValueError("No category found")
     # if there are no file links displayed, get the parent download category from the download tree
-    else:
-        firsta = downloads[0].find("a")
-        if firsta:
-            if firsta.has_attr("data-idcat"):
-                subcat = firsta["data-idcat"]
-                parent_node_id = find_node_by_id(root_node, subcat).data_parent_id
-                return int(parent_node_id)
-        else:
-            raise ValueError(f"No download link found for {row['title']}")
+    # else:
+    #     firsta = downloads[0].find("a")
+    #     if firsta:
+    #         if firsta.has_attr("data-idcat"):
+    #             subcat = firsta["data-idcat"]
+    #             parent_node_id = find_node_by_id(root_node, subcat).data_parent_id
+    #             return int(parent_node_id)
+    #     else:
+    #         raise ValueError(f"No download link found for {row['title']}")
 
 
 def extract_dedicated_download_chapter_id(df, root_node):

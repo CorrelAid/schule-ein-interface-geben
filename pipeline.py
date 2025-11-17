@@ -12,7 +12,7 @@ import polars as pl
 from anytree import RenderTree
 from rich.logging import RichHandler
 import logging
-from lib.tree_functions import build_category_tree, get_node_lst, export_tree_to_json
+from lib.tree_functions import build_category_tree, get_node_lst, export_tree_to_json, add_associated_downloads, add_associated_posts
 from lib.scraping import (
     get_download_soup,
     get_file_links,
@@ -116,7 +116,7 @@ lm = dspy.LM(
 
 pipeline = dlt.pipeline(
     pipeline_name=pipeline_name,
-    destination="duckdb",
+    destination=dlt.destinations.duckdb(os.path.abspath("segg.duckdb")),
     dataset_name=db_name,
 )
 
@@ -219,7 +219,6 @@ def step_legal_resources():
     upload_to_s3(legal_df, "legal_resources", LegalResourceSchema.to_pyarrow_schema())
     return legal_df
 
-
 def step_publications():
     """Getting publications from zotero"""
     log.info("🏭 Getting publications from zotero")
@@ -230,7 +229,6 @@ def step_publications():
     log.info(f"We got {len(zotero_df)} publications from zotero")
     upload_to_s3(zotero_df, "publications", PublicationSchema.to_pyarrow_schema())
     return zotero_df
-
 
 def step_downloads_and_posts_and_sections():
     """Combined step: Get downloads, posts, and sections (due to dependencies)"""
@@ -257,10 +255,9 @@ def step_downloads_and_posts_and_sections():
 
     log.info("build a dataframe that contains available info on downloads, including dl url. We are also checking if the url works.")
     downloads_df = extract_download_info(file_link_lst, root_node, max_workers=MAX_WORKERS)
-    downloads_df = downloads_df.cast(DownloadSchema.to_polars_schema())
 
     log.info(f"We extracted {len(downloads_df)} download urls from {len(category_ids)} categories")
-    upload_to_s3(downloads_df, "downloads", DownloadSchema.to_pyarrow_schema())
+    # Note: downloads_df upload to S3 is deferred until after posts processing to add associated_posts column
 
     # Step 2: Posts
     log.info("🏭 Get posts")
@@ -286,8 +283,18 @@ def step_downloads_and_posts_and_sections():
 
     log.info("Extend posts with dedicated download chapter id")
     df_posts_extended = extract_dedicated_download_chapter_id(df_posts_extended, root_node)
+
+    log.info("Add associated downloads to posts")
+    df_posts_extended = add_associated_downloads(df_posts_extended, downloads_df, root_node)
+
     df_posts_extended = df_posts_extended.cast(PostSchema.to_polars_schema())
     upload_to_s3(df_posts_extended, "posts", PostSchema.to_pyarrow_schema())
+
+    # Step 3b: Add associated posts to downloads (now that posts are processed)
+    log.info("Add associated posts to downloads")
+    downloads_df = add_associated_posts(downloads_df, df_posts_extended, root_node)
+    downloads_df = downloads_df.cast(DownloadSchema.to_polars_schema())
+    upload_to_s3(downloads_df, "downloads", DownloadSchema.to_pyarrow_schema())
 
     # Step 4: Sections (requires df_posts)
     log.info("🏭 Scrape Sections")
@@ -350,6 +357,7 @@ def step_glossary_terms():
     logging.getLogger().setLevel(logging.INFO)
     upload_to_s3(term_df, "glossary_terms", TermSchema.to_pyarrow_schema())
     return term_df
+
 # Main pipeline execution
 step_functions = {
     "student_council_committees": step_student_council_committees,
