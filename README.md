@@ -1,6 +1,6 @@
 # SeGg Data Pipeline
 
-- Bucket URL: https://cdl-segg.fra1.cdn.digitaloceanspaces.com
+- Bucket URL: https://correlaid-cdl-segg.fsn1.your-objectstorage.com
 - See `exploration.ipynb` for examples on how to load the data and simple descriptive statistics.
 - Main pipeline script: `pipeline.py`. Stages are described in the log messages.
 - Also see `/tests`, e.g. `tests/test_post_main_scraping.py` to get a feel for the data and how it is structured.

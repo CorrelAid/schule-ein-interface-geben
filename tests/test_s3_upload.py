@@ -5,7 +5,7 @@ import tempfile
 
 load_dotenv()
 
-S3_BUCKET_NAME = "cdl-segg"
+S3_BUCKET_NAME = "correlaid-cdl-segg"
 
 session = boto3.session.Session()
 

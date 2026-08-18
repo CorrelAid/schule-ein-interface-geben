@@ -58,10 +58,10 @@ log = logging.getLogger("rich")
 
 SMOKE_TEST_N = 3
 MAX_WORKERS = 3
-S3_BUCKET_NAME = "cdl-segg"
+S3_BUCKET_NAME = "correlaid-cdl-segg"
 
 config = Config(
-    region_name="fra1",
+    region_name="fsn1",
     connect_timeout=20,
     read_timeout=60,
     retries={"max_attempts": 8, "mode": "standard"},
